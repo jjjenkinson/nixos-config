@@ -64,8 +64,9 @@
 
   # 设置用户级默认编辑器，sudo -e也可以使用
   home.sessionVariables = {
-    SUDO_EDITOR = "nvim";
-    VISUAL = "nvim";
+    SUDO_EDITOR = "hx";
+    EDITOR = "hx";
+    VISUAL = "hx";
   };
 
 }

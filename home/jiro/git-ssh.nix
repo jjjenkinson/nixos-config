@@ -21,10 +21,6 @@
     };
   };
 
-  # 2. 启用 SSH Agent 作为 systemd 用户服务
-  # 注意：Home Manager 中选项是 services.ssh-agent.enable，而非 programs.ssh.startAgent
-  services.ssh-agent.enable = true;
-
   programs.git = {
     enable = true;
     settings = {
