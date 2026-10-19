@@ -7,18 +7,19 @@
         ]
       },
       "locked": {
-        "lastModified": 1792274446,
-        "narHash": "sha256-AM1HmBeDnB2B3dSiXuCYeu7Me+lHNpz/P39lVxGJBuQ=",
-        "owner": "nix-community",
-        "repo": "home-manager",
-        "rev": "ab3823b4b24c0c3ca984c1f3ee577fd6d667424c",
-        "type": "github"
+        "lastModified": 1792438572,
+        "narHash": "sha256-5mQQOcggBRBXB7NlzUxO0dbvQN4euJOISjNybrtfxPk=",
+        "ref": "release-26.05",
+        "rev": "24f8f8e786f87d6a818e1746cb2389bf922afdab",
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-community/home-manager.git"
       },
       "original": {
-        "owner": "nix-community",
         "ref": "release-26.05",
-        "repo": "home-manager",
-        "type": "github"
+        "shallow": true,
+        "type": "git",
+        "url": "https://github.com/nix-community/home-manager.git"
       }
     },
     "nixpkgs": {
@@ -29,13 +30,13 @@
         "rev": "8ce73368d1efd4d657e9064d29b144a52046b4e8",
         "shallow": true,
         "type": "git",
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git"
+        "url": "https://mirror.nju.edu.cn/git/nixpkgs.git"
       },
       "original": {
         "ref": "nixos-26.05",
         "shallow": true,
         "type": "git",
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git"
+        "url": "https://mirror.nju.edu.cn/git/nixpkgs.git"
       }
     },
     "nixpkgs-unstable": {
@@ -46,13 +47,13 @@
         "rev": "fe13242281a67641c0102cdb1087f0ebe586c7df",
         "shallow": true,
         "type": "git",
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git"
+        "url": "https://mirror.nju.edu.cn/git/nixpkgs.git"
       },
       "original": {
         "ref": "nixos-unstable",
         "shallow": true,
         "type": "git",
-        "url": "https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git"
+        "url": "https://mirror.nju.edu.cn/git/nixpkgs.git"
       }
     },
     "root": {

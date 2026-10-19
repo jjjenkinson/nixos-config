@@ -37,7 +37,7 @@ let
   # ← 唯一需要维护的地方:写 nixpkgs 里的顶层属性名。
   # 新增/移除 unstable 包时只改这个列表。
   names = [
-    "google-chrome"
+    # "google-chrome"
     "zed-editor"
     "helix"
   ];

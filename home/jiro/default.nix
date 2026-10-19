@@ -30,14 +30,11 @@
 
   home.packages = with pkgs; [
     # 用户级软件包
-    firefox
-    google-chrome # 版本由 overlays/unstable.nix 决定
-    mpv
-    vlc
-    # wpsoffice-cn
-    libreoffice
-    sioyek # pdf阅读器
-    flclash # Proxy client based on clashmeta
+    # 注:firefox / google-chrome / mpv / vlc / libreoffice / sioyek
+    # 已搬到 modules/packages/default.nix(系统侧):它们装好就很少动,
+    # 放系统侧可以让 `nh home switch` 的求值少实例化 7 个包(实测约省 1.6s)。
+    # 增删/升级它们需要 `sudo nh os switch`。
+    flclash # 代理客户端(基于 clash meta)
 
     # cli工具
     bat # cat替代

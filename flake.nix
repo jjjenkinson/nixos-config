@@ -10,21 +10,25 @@
   description = "NixOS + Home Manager 配置(flake)";
 
   inputs = {
-    # 系统软件源:用清华镜像加速。想换回官方源:注释上面、解开下面。
-    nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
+    # Stable 通道：指向 nixos-26.05 分支
+    nixpkgs.url = "git+https://mirror.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
+    # nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
     # nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+
     # unstable 源。flake 规范要求 input 声明写在这里,
     # 但“用不用、用哪些包”全部由 overlays/unstable.nix 决定。
     # 不使用 unstable 时,只需注释 flake.nix 里的 overlay import;
     # 这个 input 留着也不影响构建结果。
-    nixpkgs-unstable = {
-      url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
-      # 不用镜像就写:url = "github:NixOS/nixpkgs/nixos-unstable";
-    };
+    #
+    # Unstable 通道：指向 nixos-unstable 分支
+    nixpkgs-unstable.url = "git+https://mirror.nju.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
+    # nixpkgs-unstable.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
+    # nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
-      url = "github:nix-community/home-manager/release-26.05";
-      # follows:让 home-manager 复用同一个 nixpkgs,避免出现两份 nixpkgs
+      # url = "github:nix-community/home-manager/release-26.05";
+
+      url = "git+https://github.com/nix-community/home-manager.git?ref=release-26.05&shallow=1"; # follows:让 home-manager 复用同一个 nixpkgs,避免出现两份 nixpkgs
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };

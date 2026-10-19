@@ -19,14 +19,12 @@
       buffer_font_size = 15;
       agent_buffer_font_size = 15;
       # vim_mode = true;
-      helix_mod = true;
+      helix_mode = true;
       format_on_save = "on";
-      programs.zed-editor.userSettings = {
-        # 控制 CLI / 双击行为
-        cli_default_open_behavior = "new_window";
-        # 控制 UI / 外部打开请求行为
-        default_open_behavior = "new_window";
-      };
+      # 控制 CLI / 双击行为
+      cli_default_open_behavior = "new_window";
+      # 控制 UI / 外部打开请求行为
+      default_open_behavior = "new_window";
 
       terminal = {
         shell = {
@@ -34,6 +32,21 @@
           # args = [ "-l" ];                          # 如需登录 shell
         };
       };
+
+      # ── 补全行为 ───────────────────────────────────────────────
+      # nixd 启动后要先求值 nixpkgs 与 NixOS options，首次可能需要几秒；
+      # 如果让它无限等待，补全菜单会一直不出现。
+      completions = {
+        lsp = true;
+        # LSP 超过 3 秒没响应就先不显示它，避免整张菜单被卡住
+        lsp_fetch_timeout_ms = 3000;
+        # enabled：把当前文件里出现过的单词也混进补全列表
+        # （默认 fallback 只在 LSP 出错/超时时才用）
+        # words = "enabled";
+        # words_min_length = 2;
+      };
+      # 启用 Zed 自带的 AI 编辑预测（Zeta）
+      "edit_prediction_provider" = "zed";
       languages = {
         "Nix" = {
           language_servers = [
@@ -45,6 +58,12 @@
             external = {
               command = "nixfmt";
             };
+          };
+        };
+        "Markdown" = {
+          format_on_save = "on";
+          markdown_preview = {
+            open_markdown_files_in_preview = true;
           };
         };
         "Rust" = {
@@ -60,19 +79,6 @@
             "ruff"
           ];
           format_on_save = "on";
-          formatter = [
-            {
-              code_actions = {
-                source.organizeImports.ruff = true;
-                source.fixAll.ruff = true;
-              };
-            }
-            {
-              language_server = {
-                name = "ruff";
-              };
-            }
-          ];
           tab_size = 4;
           preferred_line_length = 100;
         };
@@ -84,18 +90,21 @@
           settings = {
             # 让 nixd 知道你的 flake:nixpkgs 用于包补全/inlay hint
             nixpkgs.expr = "import (builtins.getFlake \"/home/jiro/nixos-config\").inputs.nixpkgs { }";
-            # NixOS 选项补全(home-manager 是作为 NixOS 模块接入的,所以这一个表达式就覆盖了两边)
+            # ── 选项补全 ──────────────────────────────────────────────
+            # NixOS 系统侧选项（modules/system、hosts 等）
             options.nixos.expr = "(builtins.getFlake \"/home/jiro/nixos-config\").nixosConfigurations.XPS9560.options";
+            # 独立模式 Home Manager 的选项（home/jiro 等）。
+            # 你的 HM 不是作为 NixOS 模块加载的，所以它不在
+            # nixosConfigurations...options 里，必须单独写这一条。
+            options.home-manager.expr = "(builtins.getFlake \"/home/jiro/nixos-config\").homeConfigurations.\"jiro@XPS9560\".options";
             diagnostic = {
               suppress = [ "sema-extra-with" ]; # 示例：抑制特定诊断
             };
           };
         };
       };
-    };
 
-    # ====================== AI设置 =====================
-    userSettings = {
+      # ====================== AI设置 =====================
       # 不自动加载 MCP server——MCP 工具定义同样占据前缀
       # context_servers = {};  # 不配即不发
       # 设置 Agent 默认使用的模型
