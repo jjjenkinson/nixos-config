@@ -13,6 +13,13 @@
     # 系统软件源:用清华镜像加速。想换回官方源:注释上面、解开下面。
     nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
     # nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    # unstable源，按需取用
+
+    # 滚动版:只用来取少数几个包的最新版
+    nixpkgs-unstable = {
+      url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
+      # 不用镜像就写:url = "github:NixOS/nixpkgs/nixos-unstable";
+    };
 
     home-manager = {
       url = "github:nix-community/home-manager/release-26.05";
@@ -25,6 +32,7 @@
     {
       self,
       nixpkgs,
+      nixpkgs-unstable,
       home-manager,
       ...
     }@inputs:
@@ -32,15 +40,21 @@
       system = "x86_64-linux";
 
       # 系统和用户共用的 nixpkgs 配置(唯一来源)。
-      # 以后加 overlay / allowBroken / cudaSupport 也只改这里,两边不会漂移。
+      # 以后加 allowBroken / cudaSupport 也只改这里,两边不会漂移。
       pkgsConfig = {
         allowUnfree = true; # 允许非自由软件(google-chrome 等)
       };
 
-      # 用上面的配置构造 pkgs。
-      # allowUnfree 这类“许可”开关不改变包本身,所以系统和 home 用的是同一批
-      # store 路径,不会重复下载或构建。
+      # 用上面的配置构造 stable 的 pkgs(系统与 home 共用)。
       pkgs = import nixpkgs {
+        inherit system;
+        config = pkgsConfig;
+      };
+
+      # unstable 实例:只作为“新版本来源”,不在 flake 里规定哪些包要用它。
+      # 哪些包用 unstable,由安装该包的文件自己写 pkgsUnstable.xxx 决定。
+      # config 必须一起传,否则 chrome 这类非自由软件会再次报 unfree。
+      pkgsUnstable = import nixpkgs-unstable {
         inherit system;
         config = pkgsConfig;
       };
@@ -51,7 +65,7 @@
         XPS9560 = nixpkgs.lib.nixosSystem {
           inherit system;
           # specialArgs:把 flake 的 inputs 传给所有 NixOS 模块(模块里可用 inputs.xxx)
-          specialArgs = { inherit inputs; };
+          specialArgs = { inherit inputs pkgsUnstable; };
           modules = [
             ./hosts/XPS9560 # 这台机器:硬件 + 要启用哪些模块组
             { nixpkgs.config = pkgsConfig; } # 系统侧也使用同一份 nixpkgs 配置
@@ -62,7 +76,9 @@
       # ── 用户配置(独立模式 home-manager,不需要 root)──────────────────
       homeConfigurations."jiro@XPS9560" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs; # 复用上面那份 pkgs(等价于原来 NixOS 模块里的 useGlobalPkgs)
-        extraSpecialArgs = { inherit inputs; };
+        extraSpecialArgs = {
+          inherit inputs pkgsUnstable; # 各模块可用 pkgsUnstable.xxx 自行取用 unstable 包
+        };
         modules = [ ./home/jiro ];
       };
 

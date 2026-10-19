@@ -1,7 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, pkgsUnstable, ... }:
 {
   programs.zed-editor = {
     enable = true;
+    # 显式取 unstable 版;stable 的 pkgs.zed-editor 不受影响
+    package = pkgsUnstable.zed-editor;
     extensions = [
       "nix"
       "catppuccin"
@@ -17,7 +19,8 @@
       buffer_font_family = "Maple Mono NF CN";
       buffer_font_size = 15;
       agent_buffer_font_size = 15;
-      vim_mode = true;
+      # vim_mode = true;
+      helix_mod = true;
       format_on_save = "on";
       programs.zed-editor.userSettings = {
         # 控制 CLI / 双击行为
@@ -92,6 +95,7 @@
       };
     };
 
+    # ====================== AI设置 =====================
     userSettings = {
       # 不自动加载 MCP server——MCP 工具定义同样占据前缀
       # context_servers = {};  # 不配即不发
@@ -103,7 +107,7 @@
         };
         auto_compact = {
           enable = true;
-          threshold = "50%";
+          threshold = "60%";
         };
 
         # 不自动附带项目结构摘要（省得最多的单项）

@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  pkgsUnstable,
+  ...
+}:
 {
   home.username = "jiro";
   home.homeDirectory = "/home/jiro";
@@ -27,7 +32,7 @@
   home.packages = with pkgs; [
     # 用户级软件包
     firefox
-    google-chrome
+    pkgsUnstable.google-chrome # 只有这个包取 unstable 版
     mpv
     vlc
     # wpsoffice-cn

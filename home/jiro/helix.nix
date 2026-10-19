@@ -1,7 +1,14 @@
-{ pkgs, lib, ... }:
+{
+  pkgs,
+  lib,
+  pkgsUnstable,
+  ...
+}:
 {
   programs.helix = {
     enable = true;
+    # 显式取 unstable 版;stable 的 pkgs.helix 不受影响
+    package = pkgsUnstable.helix;
     # 设为默认编辑器，设置 EDITOR/VISUAL 环境变量
     # 也可以外层设置home.sessionVariables
     # defaultEditor = true;

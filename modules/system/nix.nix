@@ -14,7 +14,6 @@
       "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
       "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://mirror.sjtu.edu.cn/nix-channels/store"
-      "https://cache.nixos.org"
     ];
     # 上面的镜像要被显式信任,nix 才会用它们
     trusted-substituters = [
