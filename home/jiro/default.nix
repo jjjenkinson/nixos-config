@@ -1,7 +1,6 @@
 {
   pkgs,
   lib,
-  pkgsUnstable,
   ...
 }:
 {
@@ -32,7 +31,7 @@
   home.packages = with pkgs; [
     # 用户级软件包
     firefox
-    pkgsUnstable.google-chrome # 只有这个包取 unstable 版
+    google-chrome # 版本由 overlays/unstable.nix 决定
     mpv
     vlc
     # wpsoffice-cn

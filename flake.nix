@@ -13,9 +13,10 @@
     # 系统软件源:用清华镜像加速。想换回官方源:注释上面、解开下面。
     nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
     # nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-    # unstable源，按需取用
-
-    # 滚动版:只用来取少数几个包的最新版
+    # unstable 源。flake 规范要求 input 声明写在这里,
+    # 但“用不用、用哪些包”全部由 overlays/unstable.nix 决定。
+    # 不使用 unstable 时,只需注释 flake.nix 里的 overlay import;
+    # 这个 input 留着也不影响构建结果。
     nixpkgs-unstable = {
       url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
       # 不用镜像就写:url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -32,10 +33,11 @@
     {
       self,
       nixpkgs,
-      nixpkgs-unstable,
       home-manager,
       ...
     }@inputs:
+    # 注:unstable 源不在这里声明。它只给 overlays/unstable.nix 用,
+    # 所以通过 inputs.nixpkgs-unstable 访问,flake.nix 本体不依赖它。
     let
       system = "x86_64-linux";
 
@@ -45,17 +47,20 @@
         allowUnfree = true; # 允许非自由软件(google-chrome 等)
       };
 
-      # 用上面的配置构造 stable 的 pkgs(系统与 home 共用)。
-      pkgs = import nixpkgs {
-        inherit system;
-        config = pkgsConfig;
-      };
+      # ── overlays:所有 overlay 的唯一入口 ───────────────────────────
+      # 当前启用了 unstable;不需要时把下面这段 import 整段注释掉即可(也就是overlay列表为空)
+      # 系统会回到纯 stable(安装文件不用改)。名单在 overlays/unstable.nix。
+      overlays = [
+        (import ./overlays/unstable.nix {
+          inherit (inputs) nixpkgs nixpkgs-unstable;
+          inherit system;
+          config = pkgsConfig;
+        })
+      ];
 
-      # unstable 实例:只作为“新版本来源”,不在 flake 里规定哪些包要用它。
-      # 哪些包用 unstable,由安装该包的文件自己写 pkgsUnstable.xxx 决定。
-      # config 必须一起传,否则 chrome 这类非自由软件会再次报 unfree。
-      pkgsUnstable = import nixpkgs-unstable {
-        inherit system;
+      # 构造 pkgs:系统和 home 共用这一份。
+      pkgs = import nixpkgs {
+        inherit system overlays;
         config = pkgsConfig;
       };
     in
@@ -65,10 +70,15 @@
         XPS9560 = nixpkgs.lib.nixosSystem {
           inherit system;
           # specialArgs:把 flake 的 inputs 传给所有 NixOS 模块(模块里可用 inputs.xxx)
-          specialArgs = { inherit inputs pkgsUnstable; };
+          specialArgs = { inherit inputs; };
           modules = [
             ./hosts/XPS9560 # 这台机器:硬件 + 要启用哪些模块组
-            { nixpkgs.config = pkgsConfig; } # 系统侧也使用同一份 nixpkgs 配置
+            {
+              # 系统侧也使用同一份 nixpkgs 配置与 overlay 列表,
+              # 这样系统模块里写 pkgs.xxx 会得到和 home 一致的版本。
+              nixpkgs.config = pkgsConfig;
+              nixpkgs.overlays = overlays;
+            }
           ];
         };
       };
@@ -77,7 +87,7 @@
       homeConfigurations."jiro@XPS9560" = home-manager.lib.homeManagerConfiguration {
         inherit pkgs; # 复用上面那份 pkgs(等价于原来 NixOS 模块里的 useGlobalPkgs)
         extraSpecialArgs = {
-          inherit inputs pkgsUnstable; # 各模块可用 pkgsUnstable.xxx 自行取用 unstable 包
+          inherit inputs; # unstable 包已由 overlay 接管,模块里统一写 pkgs.xxx
         };
         modules = [ ./home/jiro ];
       };

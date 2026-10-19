@@ -1,9 +1,8 @@
-{ pkgs, pkgsUnstable, ... }:
+{ pkgs, ... }:
 {
   programs.zed-editor = {
     enable = true;
-    # 显式取 unstable 版;stable 的 pkgs.zed-editor 不受影响
-    package = pkgsUnstable.zed-editor;
+    # 不写 package:默认就是 pkgs.zed-editor,版本由 overlays/unstable.nix 决定
     extensions = [
       "nix"
       "catppuccin"
