@@ -1,0 +1,34 @@
+// ════════════════════════════════════════════════════════════════════════
+// niri 主配置(在仓库里直接编辑,保存即生效)
+//
+// 这个文件不经过 Nix store:
+//   ~/.config/niri/config.kdl  →  本文件(软链,见 home/jiro/niri.nix)
+// 所以平时改键位/设置,直接改这里并保存,niri 会立刻热重载,
+// 不需要 `nh home switch`。
+//
+// 只有这两种情况才需要 rebuild:
+//   - 改 base.kdl 的生成规则(home/jiro/niri.nix 里的 sed)
+//   - 增删软件包
+//
+// 如果编辑器用「原子保存」(写临时文件再改名)导致 niri 没反应,
+// 手动让它重载:
+//   niri msg action load-config-file
+// ════════════════════════════════════════════════════════════════════════
+
+// 默认值(键位、输入、动画、布局规则)来自 niri 自带的 default-config.kdl,
+// 由 home/jiro/niri.nix 在构建时生成到 ~/.config/niri/base.kdl。
+//
+// include 是「位置相关」的:同一项设置,写在 include 之后才会覆盖默认值。
+include "~/.config/niri/base.kdl"
+
+// noctalia:状态栏 + 启动器 + 通知中心 + 控制中心一体的 Wayland 外壳
+spawn-at-startup "noctalia"
+
+// ── 个人设置写在这下面 ──────────────────────────────────────────────────
+// 例:覆盖默认的终端快捷键
+// Mod+T { spawn "kitty"; }
+//
+// 例:窗口间隙
+// layout {
+//     gaps 8
+// }

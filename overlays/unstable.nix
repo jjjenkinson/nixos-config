@@ -40,6 +40,8 @@ let
     # "google-chrome"
     "zed-editor"
     "helix"
+    # Niri 的桌面外壳(26.05 是 5.0.1,unstable 已是 5.3.0,上游迭代很快)
+    "noctalia"
   ];
 in
 # 标准 overlay 签名:

@@ -25,6 +25,7 @@
     ./neovim.nix
     ./helix.nix
     ./zed-editor.nix
+    ./niri.nix
     ./git-ssh.nix
   ];
 
@@ -45,6 +46,7 @@
     # eza # ls替代
     duf # df替代
     btop # btop系统监控
+
     fastfetch # 显示系统基本信息
     inxi # 全面显示系统信息
     gnumake

@@ -5,7 +5,8 @@
 
 - 系统与用户配置分离：日常改用户环境只需要 `nh home switch`，不用 sudo
 - 单份 nixpkgs 配置：系统与 Home Manager 共用 `flake.nix` 里的 `pkgsConfig`
-- 少数包走 unstable：Zed、Helix 由 `overlays/unstable.nix` 统一接管（Chrome 的开关在名单里注释着）
+- 少数包走 unstable：Zed、Helix、Noctalia 桌面外壳
+- 双桌面：Plasma 6 与 Niri（平铺合成器 + Noctalia 外壳）共存，登录界面（SDDM）里选
 - 全中文注释：每个文件都写明了“为什么这么配”
 
 > 这是个人配置，包含本机磁盘 UUID、用户名、代理端口等。直接套用到别的机器前，
@@ -24,7 +25,8 @@
 │       ├── default.nix           # 本机入口：import 模块、主机名、stateVersion
 │       ├── hardware-configuration.nix  # 安装器生成：磁盘/内核模块，勿手改
 │       ├── disks.nix             # btrfs 挂载参数（noatime/压缩等）
-│       └── external-disks.nix    # 额外分区（NTFS 数据盘 /mnt/data）
+│       ├── external-disks.nix    # 额外分区（NTFS 数据盘 /mnt/data）
+│       ├── gpu.nix               # 双显卡：核显 + NVIDIA（PRIME offload）
 ├── modules/                      # 与机器无关的系统配置
 │   ├── system/
 │   │   ├── default.nix           # system 层汇总入口
@@ -36,6 +38,7 @@
 │   ├── desktop/
 │   │   ├── default.nix           # desktop 层汇总入口
 │   │   ├── plasma.nix            # Plasma 6 + SDDM（Wayland）
+│   │   ├── niri.nix              # Niri（平铺合成器），与 Plasma 并列可选
 │   │   ├── fonts.nix             # 字体与 fontconfig 默认字体
 │   │   └── input-method.nix      # fcitx5 + Rime 雾凇拼音
 │   ├── packages/
@@ -49,8 +52,13 @@
         ├── git-ssh.nix           # git 身份、GitHub SSH 配置
         ├── neovim.nix            # Neovim
         ├── helix.nix             # Helix（unstable）
+        ├── niri.nix              # niri 配置 + Noctalia 桌面外壳（unstable）
         ├── zed-editor.nix        # Zed（unstable）与语言服务器
         └── rime.nix              # Rime 的 default.custom.yaml（候选数、Shift 行为）
+
+dotfiles/                         # 自己手改的用户配置（不走 Nix 生成）
+└── niri/
+    └── config.kdl                # ← 日常改这里；保存即热重载，不用 rebuild
 ```
 
 ## 组成概览
@@ -60,15 +68,16 @@
 | 引导     | systemd-boot（EFI，保留 10 个旧代）                                                             |
 | 文件系统 | btrfs（`@` `/home` `/nix` `/var/log` `/var/cache` `@snapshots`）+ 独立 swap 分区 + vfat `/boot` |
 | 快照     | snapper（每日 7、每周 4）+ btrfs 自动 scrub                                                     |
-| 桌面     | KDE Plasma 6 + SDDM（Wayland）                                                                  |
-| 音频     | PipeWire（含 ALSA/PulseAudio 兼容）                                                             |
+| 桌面     | KDE Plasma 6（SDDM/Wayland）；Niri + Noctalia（unstable）登录界面可切换                         |
+| 声音     | PipeWire（含 ALSA/PulseAudio 兼容）                                                             |
+| 显卡     | Intel HD 630 核显 + NVIDIA GTX 1050M，PRIME offload（`nvidia-offload` 按需调用独显）            |
 | 网络     | NetworkManager                                                                                  |
 | 输入法   | fcitx5 + Rime 雾凇拼音（`rime-ice`）                                                            |
 | 字体     | Maple Mono NF CN、霞鹜文楷/新月黑、Noto CJK、Inter、Libertinus                                  |
 | Shell    | fish + starship + kitty                                                                         |
 | 编辑器   | Neovim、Helix、Zed（后两者取 unstable）                                                         |
 | 排版     | Typst + Tinymist                                                                                |
-| Nix 缓存 | 南京大学 / 上海交大 / 中科大 / 清华镜像，官方 `cache.nixos.org` 自动兜底                        |
+| Nix 缓存 | 南京大学 / 中科大 / 清华镜像，官方 `cache.nixos.org` 自动兜底（上海交大源会卡死，已移除）       |
 
 ## 日常使用
 
@@ -141,9 +150,10 @@ nh clean all
 
 ```nix
 names = [
-  "google-chrome"
+  # "google-chrome"
   "zed-editor"
   "helix"
+  "noctalia" # Niri 的桌面外壳（unstable 更新更快）
 ];
 ```
 
@@ -154,6 +164,44 @@ names = [
 
 > 注意：`subvol=@` 这类参数由 `hardware-configuration.nix` 提供，`disks.nix`
 > 只追加 `options`，不要在那里写 `device` 或 `subvol`，否则会重复。
+
+## 双桌面（Plasma + Niri）
+
+- **登录切换**：SDDM 会同时列出 `Plasma (Wayland)` 和 `Niri`，选哪个就进哪个
+- **系统侧 / 用户侧分工**：`modules/desktop/niri.nix` 负责装 niri、注册会话、
+  配 X11 兼容与 noctalia 需要的服务；`home/jiro/niri.nix` 负责 `config.kdl` 与 noctalia
+- **配置分两层**：
+  - `~/.config/niri/base.kdl`：构建时由 niri 自带 `default-config.kdl` 生成
+    （去掉默认的 waybar spawn，alacritty → kitty），在 store 里，随 niri 升级自动更新
+  - `~/.config/niri/config.kdl`：软链到仓库里的 `dotfiles/niri/config.kdl`
+    （out-of-store 软链），日常编辑这个
+- **热重载（不用 rebuild）**：改 `dotfiles/niri/config.kdl` 保存即可，
+  niri 会立刻热重载，**不需要 `nh home switch`**。若编辑器用原子保存导致没反应，
+  执行 `niri msg action load-config-file`
+- **什么时候才需要 rebuild**：改了 `home/jiro/niri.nix` 里的生成规则，或增删软件包
+- **X11 程序**：niri 25.08 起自带 `xwayland-satellite` 集成，只要
+  `environment.systemPackages` 里有 `xwayland-satellite`，有 X11 客户端连接时
+  niri 会自动拉起它（也会自动重启），不用写 `spawn-at-startup`
+- **输入法**：fcitx5 走 Wayland `text-input` 协议；niri 模块已开启 xdg-autostart，
+  所以 fcitx5 会随会话自启
+
+## 双显卡（Intel 核显 + NVIDIA 独显）
+
+配置在 `hosts/XPS9560/gpu.nix`（Optimus 笔记本，PRIME render offload）：
+
+- **平时全部跑核显**，独显空闲（省电、发热低、续航正常）
+- **需要独显时**用 `nvidia-offload` 启动单个程序：
+
+  ```bash
+  nvidia-offload glxinfo | grep "OpenGL renderer"   # 确认真的用的是独显
+  nvidia-offload steam
+  nvidia-smi                                        # 查看两张卡状态
+  ```
+
+- **驱动分支必须是 `legacy_580`**：nixpkgs 的 `stable` 已是 595 系列，
+  而 NVIDIA 从 580 之后不再支持 Pascal（GTX 10xx）。升级 nixpkgs 时不要把它改回默认。
+- **不要开 `hardware.nvidia.powerManagement`**：动态断电只支持 Turing 及以后，Pascal 上开了会出问题。
+- 第一次从 nouveau 切到 nvidia 后**需要重启**。
 
 ## 输入法（Rime 雾凇拼音）
 

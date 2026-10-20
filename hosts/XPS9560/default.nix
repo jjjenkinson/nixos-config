@@ -10,6 +10,7 @@
     ./hardware-configuration.nix # 安装时自动生成(磁盘、内核模块),一般不要手改
     ./disks.nix # 这台机器的挂载参数
     ./external-disks.nix # 额外分区(NTFS)
+    ./gpu.nix # 双显卡:核显 + NVIDIA 独显(PRIME offload)
 
     ../../modules/system # 系统基础:nix、引导、btrfs 策略、音频、网络、语言
     ../../modules/packages # 系统级软件包
