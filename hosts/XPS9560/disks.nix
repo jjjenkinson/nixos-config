@@ -8,7 +8,6 @@ let
   btrfsTuning = [
     "noatime" # 不记录访问时间(SSD 少写一点)
     "compress=zstd" # 透明压缩
-    "autodefrag" # 自动碎片整理
   ];
 
   # 需要套用上面参数的挂载点(必须已在 hardware-configuration.nix 中定义)

@@ -49,16 +49,20 @@
     └── jiro/
         ├── default.nix           # 用户级入口：home.packages、备份策略
         ├── shell.nix             # fish、starship、kitty、eza、代理函数
+        ├── yazi.nix              # yazi 文件管理器（插件、键位、预览）
         ├── git-ssh.nix           # git 身份、GitHub SSH 配置
         ├── neovim.nix            # Neovim
         ├── helix.nix             # Helix（unstable）
-        ├── niri.nix              # niri 配置 + Noctalia 桌面外壳（unstable）
+        ├── niri.nix              # niri 配置（生成 base.kdl + 挂 config.kdl）
+        ├── noctalia.nix          # Noctalia 外壳（unstable）+ 挂基础配置
         ├── zed-editor.nix        # Zed（unstable）与语言服务器
         └── rime.nix              # Rime 的 default.custom.yaml（候选数、Shift 行为）
 
 dotfiles/                         # 自己手改的用户配置（不走 Nix 生成）
-└── niri/
-    └── config.kdl                # ← 日常改这里；保存即热重载，不用 rebuild
+├── niri/
+│   └── config.kdl                # ← 日常改这里；保存即热重载，不用 rebuild
+└── noctalia/
+    └── 00-nix.toml               # Noctalia 基础配置（改完 msg config-reload）
 ```
 
 ## 组成概览
@@ -75,6 +79,7 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 | 输入法   | fcitx5 + Rime 雾凇拼音（`rime-ice`）                                                            |
 | 字体     | Maple Mono NF CN、霞鹜文楷/新月黑、Noto CJK、Inter、Libertinus                                  |
 | Shell    | fish + starship + kitty                                                                         |
+| 文件管理 | yazi（TUI，fish 函数 `y` 退出后自动 cd；git 状态、压缩包预览、smart-enter）                     |
 | 编辑器   | Neovim、Helix、Zed（后两者取 unstable）                                                         |
 | 排版     | Typst + Tinymist                                                                                |
 | Nix 缓存 | 南京大学 / 中科大 / 清华镜像，官方 `cache.nixos.org` 自动兜底（上海交大源会卡死，已移除）       |
@@ -185,6 +190,28 @@ names = [
 - **输入法**：fcitx5 走 Wayland `text-input` 协议；niri 模块已开启 xdg-autostart，
   所以 fcitx5 会随会话自启
 
+## Noctalia 的设置怎么管
+
+配置文件分两层（官方文档 + 5.3.0 实测）：
+
+| 优先级 | 路径                                              | 谁来写                  |
+| ------ | ------------------------------------------------- | ----------------------- |
+| 低     | `~/.config/noctalia/*.toml`（按文件名字母序合并） | 我们（软链到 dotfiles） |
+| 高     | `~/.local/state/noctalia/settings.toml`           | noctalia 设置界面       |
+
+- **两个目录都被监听，保存即热重载**，不用执行命令也不用 rebuild
+  （`noctalia msg config-reload` 只是手动兜底）
+- **`~/.config/noctalia/` 下的文件永远不会被 noctalia 重写**，包括版本升级迁移。
+  迁移只升 `settings.toml`；配置目录里的旧键只在读取时临时规范化，
+  并在通知里指出「文件:行:键」让你自己改。⇒ 软链和文件名都是稳定的
+- **想写死的项**：写进 `dotfiles/noctalia/00-nix.toml`（文件名前缀决定覆盖顺序，越大越靠后）
+- **用界面调**：改动会写进 `settings.toml`，并且**压过**上面文件里的同名键。
+  想让配置文件的值得胜，就把 `settings.toml` 里对应键删掉
+- **查可用键**：`noctalia config export full`（含内置默认值，约 750 行）
+- **校验**：`noctalia config validate`（按真实加载顺序，含 `settings.toml`）
+- **备份当前界面设置**：`noctalia config export merged > dotfiles/noctalia/settings-export.toml`
+  （恢复：拷回 `~/.local/state/noctalia/settings.toml`；如果是软链，noctalia 会写入链接目标并保留链接）
+
 ## 双显卡（Intel 核显 + NVIDIA 独显）
 
 配置在 `hosts/XPS9560/gpu.nix`（Optimus 笔记本，PRIME render offload）：
@@ -222,6 +249,18 @@ rm -rf ~/.local/share/fcitx5/rime/build
 ## 用户环境
 
 - **Shell**：fish + starship；kitty 作为终端，字体 `Maple Mono NF CN`
+- **yazi**：终端文件管理器，配置在 `home/jiro/yazi.nix`
+
+  ```bash
+  y          # 进入 yazi（fish 函数），退出后 shell 会停在最后浏览的目录
+  ```
+
+  - 键位沿用 yazi 默认（h/j/k/l、空格选中、y/x 复制剪切、d 删除、a 新建、r 重命名），
+    只额外加了：`Enter` 智能打开、`C` 压缩、`M` 改权限
+  - 预览依赖由 nixpkgs 的 yazi 自带（fd / rg / fzf / zoxide / ffmpeg / poppler /
+    chafa / resvg / 7zz），`ouch` 为压缩包目录树预览单独补装
+  - **yazi 没有配置热重载**：改 `yazi.nix` 需要 `nh home switch`，然后重开 yazi 才生效
+
 - **eza**：`eza` 别名带 `--icons auto` 和 `--git`；HM 生成的 `ls`/`ll`/`la` 默认不带图标，
   需要的话可用 `home.shellAliases` 覆盖（图标需要 Nerd Font）
 - **代理**：默认导出 `127.0.0.1:7890`（flclash），另提供 `proxy_on` / `proxy_off`

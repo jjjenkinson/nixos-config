@@ -31,6 +31,7 @@ xdg.configFile."niri/config.kdl".source =
 
 ## 当前内容
 
-| 路径                   | 被谁读取                 | 热重载                   |
-| ---------------------- | ------------------------ | ------------------------ |
-| `niri/config.kdl`      | niri（经 `~/.config/niri/config.kdl`） | 是（保存即生效；异常时执行 `niri msg action load-config-file`） |
+| 路径                   | 被谁读取                                        | 生效方式                                                                                                         |
+| ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `niri/config.kdl`      | niri（经 `~/.config/niri/config.kdl`）          | 保存即热重载；异常时 `niri msg action load-config-file`                                                          |
+| `noctalia/00-nix.toml` | Noctalia（经 `~/.config/noctalia/00-nix.toml`） | 保存即热重载（配置目录被监听）；会被 `~/.local/state/noctalia/settings.toml` 覆盖同名键；noctalia 不会重写该目录 |

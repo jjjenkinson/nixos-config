@@ -22,10 +22,12 @@
   imports = [
     ./rime.nix
     ./shell.nix
+    ./yazi.nix
     ./neovim.nix
     ./helix.nix
     ./zed-editor.nix
     ./niri.nix
+    ./noctalia.nix
     ./git-ssh.nix
   ];
 

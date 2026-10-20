@@ -30,9 +30,6 @@ let
   editableConfig = "${config.home.homeDirectory}/nixos-config/dotfiles/niri/config.kdl";
 in
 {
-  # Noctalia 桌面外壳(版本由 overlays/unstable.nix 决定,走 unstable)
-  home.packages = [ pkgs.noctalia ];
-
   # Nix 管理的基底
   xdg.configFile."niri/base.kdl".source = niriBase;
 

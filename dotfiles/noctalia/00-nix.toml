@@ -1,0 +1,47 @@
+# ════════════════════════════════════════════════════════════════════════
+# Noctalia 基础配置(直接在仓库里编辑,保存即生效)
+#
+# 位置链路:
+#   ~/.config/noctalia/00-nix.toml  →  本文件(软链,见 home/jiro/noctalia.nix)
+#
+# 配置栈(官方文档 + 5.3.0 实测):
+#   1. 内置默认值
+#   2. ~/.config/noctalia/*.toml   按文件名「字母序」合并,后面的覆盖前面的
+#      (单个文件内部:先合并它 [include] 的内容,再用文件自身的设置覆盖)
+#   3. ~/.local/state/noctalia/settings.toml
+#      设置界面改的东西写这里,最后应用,覆盖上面所有同名键
+#
+# 两条重要事实:
+#   - ~/.config/noctalia/ 下的文件「永远不会被 noctalia 重写」,
+#     包括版本升级时的配置迁移。迁移只在读取时临时规范化,并通过通知指出
+#     「哪个文件、哪一行、哪个键」需要你手动改。
+#     ⇒ 这里的文件名和内容完全由我们控制,用软链也是安全的,不会被改名/替换。
+#   - 配置目录和 settings.toml 都会被监听,保存后自动热重载;
+#     `noctalia msg config-reload` 只是手动兜底。
+#
+# 常用命令:
+#   noctalia config export full      # 全部可用键(含内置默认,约 750 行)
+#   noctalia config export merged    # 当前用户配置(即 settings.toml)
+#   noctalia config validate         # 按真实加载顺序校验(含 settings.toml)
+#   noctalia config validate <file>  # 只校验单个文件
+# ════════════════════════════════════════════════════════════════════════
+
+# 在下面写你想固定的项。例:
+#
+# [bar.default]
+# margin_ends = 10
+#
+# [theme]
+# builtin = "Catppuccin"
+#
+# [hot_corners.top_left]
+# action = "launcher"
+
+# 想按「配置档案」切换时(把多份方案放子目录,避免同时加载):
+#
+# [include]
+# autoload = false
+# files = [ "profiles/work.toml" ]
+#
+# autoload = false 时只有设置它的文件(及其 include)会被加载,
+# 配置目录里的其他 *.toml 一律忽略。

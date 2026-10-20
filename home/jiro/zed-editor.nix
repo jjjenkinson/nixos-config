@@ -5,8 +5,9 @@
     # 不写 package:默认就是 pkgs.zed-editor,版本由 overlays/unstable.nix 决定
     extensions = [
       "nix"
-      "catppuccin"
+      "catppuccin" # theme
       "typst" # Typst 语言支持 + 预览
+      "toml"
     ];
 
     userSettings = {
