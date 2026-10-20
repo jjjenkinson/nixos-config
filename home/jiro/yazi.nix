@@ -20,11 +20,13 @@
     shellWrapperName = "y";
 
     # 额外加进 yazi 包装器 PATH 的程序。
-    # 注意:nixpkgs 的 yazi 默认已经带了 fd / ripgrep / fzf / zoxide /
-    # ffmpeg / poppler / imagemagick / chafa / resvg / jq / 7zz,
-    # 这里只补它没带、而插件需要的。
+    # nixpkgs 的 yazi 包装器已经带了 fd / ripgrep / fzf / zoxide /
+    # ffmpeg / poppler / imagemagick / chafa / resvg / jq / 7zz / file,
+    # 所以这里只补「它没带、但我们实际会用到」的:
     extraPackages = with pkgs; [
-      ouch # ouch 插件:压缩包内容预览 + 压缩
+      ouch # ouch 插件:压缩包目录树预览 + 压缩
+      git # git 插件的 fetcher 会调用 `git status`
+      wl-clipboard # 复制到 Wayland 系统剪贴板(wl-copy)
     ];
 
     # ── yazi.toml ────────────────────────────────────────────────

@@ -1,68 +1,54 @@
-{
-  pkgs,
-  lib,
-  ...
-}:
+# Helix。版本由 overlays/unstable.nix 决定(不写 package 即 pkgs.helix)。
+# 设为默认编辑器由 home/jiro/default.nix 的 EDITOR/VISUAL 负责。
+{ pkgs, lib, ... }:
+
 {
   programs.helix = {
     enable = true;
-    # 不写 package:默认就是 pkgs.helix,版本由 overlays/unstable.nix 决定
-    # 设为默认编辑器，设置 EDITOR/VISUAL 环境变量
-    # 也可以外层设置home.sessionVariables
-    # defaultEditor = true;
 
     settings = {
-      theme = "autumn_night_transparent"; # 主题名称
+      # 内置主题:catppuccin_{latte,frappe,macchiato,mocha}、autumn_night 等
+      theme = "catppuccin_mocha";
+
       editor = {
-        default-yank-register = "+";
-        line-number = "relative"; # 相对行号
+        default-yank-register = "+"; # 与系统剪贴板共用寄存器
+        line-number = "relative";
         cursor-shape = {
           normal = "block";
           insert = "bar";
           select = "underline";
         };
-        lsp.display-messages = true; # 显示 LSP 消息
-        bufferline = "multiple"; # 显示缓冲区标签
-        # mouse = false; # 禁用鼠标
-        scrolloff = 18; # 滚动时保持的垂直边距
-        soft-wrap.enable = true; # 启用软换行
+        lsp.display-messages = true;
+        bufferline = "multiple";
+        scrolloff = 18;
+        soft-wrap.enable = true;
       };
     };
-    # ... 其他设置 ...
+
+    # 语言服务器与各语言的格式化/LSP 绑定。
     languages = {
-      # 定义语言服务器，并可根据需要添加参数
       language-server = {
-        rust-analyzer = {
-          command = "rust-analyzer";
-        };
-        nixd = {
-          # Nix LSP
-          command = "nixd";
-        };
-        tinymist = {
-          command = "tinymist";
-        };
+        rust-analyzer.command = "rust-analyzer";
+        nixd.command = "nixd";
+        tinymist.command = "tinymist";
       };
 
-      # 为特定语言启用服务器和格式化器
       language = [
         {
           name = "nix";
-          auto-format = true; # 保存时自动格式化
-          formatter = {
-            command = lib.getExe pkgs.nixfmt; # 使用 Nix 包提供的格式化器
-          };
+          auto-format = true;
+          formatter.command = lib.getExe pkgs.nixfmt;
           language-servers = [ "nixd" ];
         }
         {
           name = "rust";
           auto-format = true;
-          language-servers = [ "rust-analyzer" ]; # 指定使用的服务器
+          language-servers = [ "rust-analyzer" ];
         }
         {
           name = "typst";
           auto-format = true;
-          language-servers = [ "tinymist" ]; # 指定使用的服务器
+          language-servers = [ "tinymist" ];
         }
       ];
     };

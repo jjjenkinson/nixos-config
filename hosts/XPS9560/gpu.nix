@@ -12,7 +12,7 @@
 #
 # 查询方法:
 #   grep -H . /sys/bus/pci/devices/*/class | grep -E '0x0300|0x0302'
-{ ... }:
+{ pkgs, ... }:
 
 {
   # 只要写 nvidia。开启 PRIME 后,NixOS 会自动给核显补一个 modesetting 的 X 设备,
@@ -22,6 +22,15 @@
   # 3D 加速的运行时环境(/run/opengl-driver)。
   # 现在是由桌面模块间接触发的,这里显式写死,避免以后换桌面环境时莫名其妙丢硬件加速。
   hardware.graphics.enable = true;
+
+  # Intel 核显的 VA-API 硬解驱动(iHD)。
+  # hardware.graphics.enable 只负责 libva 与 /run/opengl-driver,
+  # 具体厂商驱动必须自己列出来:缺了它,浏览器/播放器在核显上只能软解。
+  #
+  # ⚠️ 不要全局设 LIBVA_DRIVER_NAME=iHD:
+  #   那样 nvidia-offload 下的 nvidia-vaapi-driver 也会被指到 iHD 而失效。
+  #   默认的自动探测会按当前渲染设备选驱动。
+  hardware.graphics.extraPackages = with pkgs; [ intel-media-driver ];
 
   hardware.nvidia = {
     # ── 为什么不用默认的 stable 分支 ────────────────────────────────

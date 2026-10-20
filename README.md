@@ -24,14 +24,14 @@
 │   └── XPS9560/
 │       ├── default.nix           # 本机入口：import 模块、主机名、stateVersion
 │       ├── hardware-configuration.nix  # 安装器生成：磁盘/内核模块，勿手改
-│       ├── disks.nix             # btrfs 挂载参数（noatime/压缩等）
+│       ├── disks.nix             # 挂载参数 + /home 快照子卷（oneshot 创建）
 │       ├── external-disks.nix    # 额外分区（NTFS 数据盘 /mnt/data）
 │       ├── gpu.nix               # 双显卡：核显 + NVIDIA（PRIME offload）
 ├── modules/                      # 与机器无关的系统配置
 │   ├── system/
 │   │   ├── default.nix           # system 层汇总入口
 │   │   ├── nix.nix               # flakes、二进制缓存、nh
-│   │   ├── base.nix              # PipeWire、蓝牙、NetworkManager
+│   │   ├── base.nix              # PipeWire、蓝牙、网络、journald、nix-ld
 │   │   ├── boot.nix              # systemd-boot
 │   │   ├── btrfs.nix             # scrub、fstrim、snapper
 │   │   └── locale.nix            # 时区、语言、XDG 目录名
@@ -44,11 +44,11 @@
 │   ├── packages/
 │   │   └── default.nix           # 系统级包：命令行工具 + 大件桌面应用
 │   └── users/
-│       └── jiro.nix              # 用户账号、用户组、初始密码
+│       └── jiro.nix              # 用户账号、用户组
 └── home/
     └── jiro/
         ├── default.nix           # 用户级入口：home.packages、备份策略
-        ├── shell.nix             # fish、starship、kitty、eza、代理函数
+        ├── shell.nix             # fish/bash、starship、kitty、eza、代理函数
         ├── yazi.nix              # yazi 文件管理器（插件、键位、预览）
         ├── git-ssh.nix           # git 身份、GitHub SSH 配置
         ├── neovim.nix            # Neovim
@@ -62,7 +62,7 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 ├── niri/
 │   └── config.kdl                # ← 日常改这里；保存即热重载，不用 rebuild
 └── noctalia/
-    └── 00-nix.toml               # Noctalia 基础配置（改完 msg config-reload）
+    └── 00-nix.toml               # Noctalia 基础配置（保存即热重载）
 ```
 
 ## 组成概览
@@ -71,24 +71,26 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 | -------- | ----------------------------------------------------------------------------------------------- |
 | 引导     | systemd-boot（EFI，保留 10 个旧代）                                                             |
 | 文件系统 | btrfs（`@` `/home` `/nix` `/var/log` `/var/cache` `@snapshots`）+ 独立 swap 分区 + vfat `/boot` |
-| 快照     | snapper（每日 7、每周 4）+ btrfs 自动 scrub                                                     |
+| 快照     | snapper（`/` 与 `/home`，每日 7、每周 4）+ btrfs 自动 scrub                                     |
 | 桌面     | KDE Plasma 6（SDDM/Wayland）；Niri + Noctalia（unstable）登录界面可切换                         |
 | 声音     | PipeWire（含 ALSA/PulseAudio 兼容）                                                             |
 | 显卡     | Intel HD 630 核显 + NVIDIA GTX 1050M，PRIME offload（`nvidia-offload` 按需调用独显）            |
 | 网络     | NetworkManager                                                                                  |
 | 输入法   | fcitx5 + Rime 雾凇拼音（`rime-ice`）                                                            |
 | 字体     | Maple Mono NF CN、霞鹜文楷/新月黑、Noto CJK、Inter、Libertinus                                  |
-| Shell    | fish + starship + kitty                                                                         |
+| Shell    | fish（主力）+ bash（兼容）+ starship + kitty                                                    |
 | 文件管理 | yazi（TUI，fish 函数 `y` 退出后自动 cd；git 状态、压缩包预览、smart-enter）                     |
 | 编辑器   | Neovim、Helix、Zed（后两者取 unstable）                                                         |
 | 排版     | Typst + Tinymist                                                                                |
-| Nix 缓存 | 南京大学 / 中科大 / 清华镜像，官方 `cache.nixos.org` 自动兜底（上海交大源会卡死，已移除）       |
+| Nix 缓存 | 中科大 / 清华 / 南京大学镜像，官方 `cache.nixos.org` 自动兜底（上海交大源会卡死，已移除）       |
 
 ## 日常使用
 
 ### 前提
 
-`/etc/nixos` 已软链到本仓库，`nh` 才能直接使用：
+`nh` 已经直接指向仓库路径（`modules/system/nix.nix` 里的 `programs.nh.flake`），
+不再依赖 `/etc/nixos` 软链。下面这条只是习惯做法，方便手写
+`nixos-rebuild` / 其他工具默认去 `/etc/nixos` 找配置，可选：
 
 ```bash
 sudo rm -rf /etc/nixos
@@ -166,6 +168,9 @@ names = [
 - **移除**：删掉对应那行
 - **整体关闭**：注释掉 `flake.nix` 中 `overlays` 列表里的 `(import ./overlays/unstable.nix { ... })`，
   系统立即回到纯 stable，安装文件一行都不用改
+- **注意**：overlay 用的是 `nixpkgs-unstable.legacyPackages`（省一次 nixpkgs 求值），
+  它没有 `allowUnfree`。如果以后把 `google-chrome` 这类非自由包加进 `names`，
+  需要把 `overlays/unstable.nix` 改回 `import nixpkgs-unstable { inherit system config; }`
 
 > 注意：`subvol=@` 这类参数由 `hardware-configuration.nix` 提供，`disks.nix`
 > 只追加 `options`，不要在那里写 `device` 或 `subvol`，否则会重复。
@@ -258,13 +263,19 @@ rm -rf ~/.local/share/fcitx5/rime/build
   - 键位沿用 yazi 默认（h/j/k/l、空格选中、y/x 复制剪切、d 删除、a 新建、r 重命名），
     只额外加了：`Enter` 智能打开、`C` 压缩、`M` 改权限
   - 预览依赖由 nixpkgs 的 yazi 自带（fd / rg / fzf / zoxide / ffmpeg / poppler /
-    chafa / resvg / 7zz），`ouch` 为压缩包目录树预览单独补装
+    chafa / resvg / 7zz），另外补了 `ouch`（压缩包预览）、`git`（状态标记）、
+    `wl-clipboard`（系统剪贴板）
   - **yazi 没有配置热重载**：改 `yazi.nix` 需要 `nh home switch`，然后重开 yazi 才生效
 
 - **eza**：`eza` 别名带 `--icons auto` 和 `--git`；HM 生成的 `ls`/`ll`/`la` 默认不带图标，
   需要的话可用 `home.shellAliases` 覆盖（图标需要 Nerd Font）
-- **代理**：默认导出 `127.0.0.1:7890`（flclash），另提供 `proxy_on` / `proxy_off`
-  函数；不需要常开代理时，注释 `shell.nix` 里的 `home.sessionVariables` 代理项
+- **fzf / zoxide**：fish 与 bash 都启用了 shell 集成：
+  `Ctrl-R` 历史、`Ctrl-T` 文件、`Alt-C` 目录；`z <关键字>` 跳目录、`zi` 交互式选择。
+  这些是 shell 里直接可用的，和 yazi 内部自带的 fzf/zoxide 是两套（互不影响）
+- **代理**：**默认不导出任何代理变量**。需要时在 fish / bash 里执行 `proxy_on`
+  （导出 `127.0.0.1:7890`，flclash），用完 `proxy_off`。这样 flclash 没启动时，
+  `git` / `curl` 不会去连一个不存在的代理；两种 shell 的函数定义都在 `shell.nix`，
+  变量只在函数体里写一份
 - **Git / SSH**：`~/.ssh/id_ed25519` 对应 GitHub，`programs.ssh` 中已配置
   `github.com` 的 Host / IdentityFile / 连接复用
 - **编辑器**：Zed 使用 nixd + nixfmt、rust-analyzer、pyright + ruff、tinymist
@@ -276,11 +287,14 @@ rm -rf ~/.local/share/fcitx5/rime/build
 2. **新增 `.nix` 文件后必须 `git add`**，否则 flake 运行时看不到它（flake 只读取
    已跟踪的文件），会报 `No such file or directory`。
 3. `nix build` 生成的 `result` 软链已被 `.gitignore` 忽略，不要 `git add`。
-4. `modules/users/jiro.nix` 里的初始密码是明文，仅用于首次安装。建议改成
-   `hashedPasswordFile`，并把哈希文件放在仓库之外。
+4. **没有声明初始密码**。首次安装后需要进 TTY 用 `passwd` 设一次；
+   要声明式管理就换成 `hashedPasswordFile`，哈希文件放在仓库之外（如 `/run/secrets/jiro-password`）。
 5. 本仓库不含任何私钥或 API Key；Zed 的模型接口只写了地址，密钥需在编辑器内自行填写。
 6. 所有磁盘 UUID 都与本机绑定，迁移到其他机器时需要重新生成
    `hardware-configuration.nix` 并检查 `disks.nix` / `external-disks.nix`。
+7. `/home` 的 snapper 配置要求 `/home/.snapshots` 是一个子卷，
+   由 `hosts/XPS9560/disks.nix` 里的 `create-home-snapshots-subvolume` 开机时补齐，
+   迁移/重装后不要删掉这个服务。
 
 ## 迁移到新机器
 

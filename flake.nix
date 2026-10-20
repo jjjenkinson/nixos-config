@@ -1,10 +1,9 @@
 # ════════════════════════════════════════════════════════════════════════
 # 整份配置的入口。它只做三件事:
-#   1. inputs               声明依赖(nixpkgs、home-manager)
-#   2. nixosConfigurations  “系统”配置  → sudo nixos-rebuild switch --flake .#XPS9560
-#   3. homeConfigurations   “用户”配置  → home-manager switch --flake .#jiro@XPS9560
-# 使用了nh和指定了flake入口，所以2、3两步可以分别改为 nh os swotch 和 nh home ssswitch
-# 具体内容都在 hosts/ 与 modules/、home/ 里,这里只负责组装。
+#   1. inputs              声明依赖(nixpkgs、home-manager)
+#   2. nixosConfigurations 系统配置 → `nh os switch` / `nixos-rebuild switch --flake .#XPS9560`
+#   3. homeConfigurations  用户配置 → `nh home switch` / `home-manager switch --flake .#jiro@XPS9560`
+# 具体内容都在 hosts/、modules/、home/ 里,这里只负责组装。
 # ════════════════════════════════════════════════════════════════════════
 {
   description = "NixOS + Home Manager 配置(flake)";
@@ -15,10 +14,9 @@
     # nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
     # nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
-    # unstable 源。flake 规范要求 input 声明写在这里,
-    # 但“用不用、用哪些包”全部由 overlays/unstable.nix 决定。
-    # 不使用 unstable 时,只需注释 flake.nix 里的 overlay import;
-    # 这个 input 留着也不影响构建结果。
+    # unstable 源。flake 规范要求 input 写在这里,
+    # 但「用不用、用哪些包」全部由 overlays/unstable.nix 决定;
+    # 不使用 unstable 时只需注释掉下面的 overlay import,这个 input 留着不影响构建。
     #
     # Unstable 通道：指向 nixos-unstable 分支
     nixpkgs-unstable.url = "git+https://mirror.nju.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
@@ -58,7 +56,6 @@
         (import ./overlays/unstable.nix {
           inherit (inputs) nixpkgs nixpkgs-unstable;
           inherit system;
-          config = pkgsConfig;
         })
       ];
 

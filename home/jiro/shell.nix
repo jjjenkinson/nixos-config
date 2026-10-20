@@ -1,20 +1,27 @@
-{ pkgs, ... }: {
+# Shell 与终端:fish(主力)、bash(兼容)、kitty、starship、eza、代理函数。
+{ ... }:
+
+{
+  # ── fish(默认 shell)────────────────────────────────────────────────
   programs.fish.enable = true;
 
+  # ── bash(备用 / 脚本兼容)──────────────────────────────────────────
+  # 必须 enable 才会生成 ~/.bashrc;只写 bashrcExtra 是不生效的。
+  programs.bash.enable = true;
+
+  # ── 终端 ────────────────────────────────────────────────────────────
   programs.kitty = {
     enable = true;
 
-    # 核心：设置 Kitty 默认启动 fish，并启用 Fish 集成以获得更好的体验
+    # 让 kitty 启动 fish,并加载 fish 的 shell 集成(shell 相关快捷键等)。
     shellIntegration.enableFishIntegration = true;
     settings = {
-      # 开启 Shell 集成，自动加载 fish 的集成脚本
       shell_integration = "enabled";
       shell = "fish";
     };
 
-    # 设置字体（可选）
     font = {
-      name = "Maple Mono NF CN"; # 使用你已配置的字体
+      name = "Maple Mono NF CN";
       size = 12;
     };
 
@@ -35,6 +42,7 @@
     };
   };
 
+  # ── 提示符 ──────────────────────────────────────────────────────────
   programs.starship = {
     enable = true;
     settings = {
@@ -44,28 +52,34 @@
     };
   };
 
+  # ── ls 替代 ─────────────────────────────────────────────
   programs.eza = {
-    enable = true; # 由 HM 安装并生成别名(ls/ll/la...)
-    icons = "auto"; # ← 文件类型图标(需要 Nerd Font)
+    enable = true;
+    icons = "auto"; # 文件类型图标(需要 Nerd Font)
     git = true; # 显示 git 状态列
     enableFishIntegration = true;
   };
 
-  # 用户环境变量
-  home.sessionVariables = {
-    http_proxy = "http://127.0.0.1:7890";
-    https_proxy = "http://127.0.0.1:7890";
-    HTTP_PROXY = "http://127.0.0.1:7890";
-    HTTPS_PROXY = "http://127.0.0.1:7890";
-    all_proxy = "socks5://127.0.0.1:7890";
-    ALL_PROXY = "socks5://127.0.0.1:7890";
-    # 本地/内网不走代理，务必设置
-    no_proxy = "localhost,127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.local";
-    NO_PROXY = "localhost,127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,.local";
+  # ── 模糊查找 / 目录跳转 ─────────────────────────────────
+  # yazi 自带的 fzf / zoxide 只在它的包装器 PATH 里,不会进入 shell;
+  # 这里单独启用,让 shell 里也能直接用。
+  programs.fzf = {
+    enable = true;
+    enableFishIntegration = true; # Ctrl-R 历史 / Ctrl-T 文件 / Alt-C 目录
+    enableBashIntegration = true;
   };
 
+  programs.zoxide = {
+    enable = true;
+    enableFishIntegration = true; # z <关键字> 跳目录,zi 交互式
+    enableBashIntegration = true;
+  };
+
+  # ── 代理 ────────────────────────────────────────────────────────────
+  # 默认不导出任何代理变量。需要时手动 `proxy_on`,用完 `proxy_off`:
+  # flclash 没启动时,常开的代理变量会让 git / curl / pip 一直连不存在的端口。
+  # 变量只在函数体里写一份,fish 与 bash 各一个实现、内容保持一致。
   programs.bash.bashrcExtra = ''
-    # 上面的 proxy_on / proxy_off
     proxy_on() {
       export http_proxy="http://127.0.0.1:7890"
       export https_proxy="http://127.0.0.1:7890"
@@ -92,6 +106,7 @@
     set -gx NO_PROXY $no_proxy
     echo "proxy on: 127.0.0.1:7890"
   '';
+
   programs.fish.functions.proxy_off.body = ''
     set -e http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
     set -e all_proxy ALL_PROXY no_proxy NO_PROXY

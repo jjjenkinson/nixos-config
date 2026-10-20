@@ -20,5 +20,9 @@
     noCheck = true; # NTFS 没有 Linux 侧 fsck
   };
 
-  systemd.tmpfiles.rules = [ "d /mnt/data 0755 root root -" ];
+  # 不要用 systemd.tmpfiles 去建 /mnt/data:
+  # systemd-tmpfiles-setup.service 是 After=local-fs.target,等它跑的时候
+  # 分区已经挂上了,`d /mnt/data 0755 root root -` 实际是在对 NTFS 根目录
+  # 做 chmod/chown——ntfs3 会忽略它们(权限由 uid/gid/umask 决定),
+  # 而挂载点目录本身由 systemd 的 mount unit 自动创建,不需要额外声明。
 }

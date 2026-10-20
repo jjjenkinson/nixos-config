@@ -9,13 +9,11 @@
   home.stateVersion = "26.05"; # 首次设置后勿改
   programs.home-manager.enable = true;
 
-  # # 重建时自动备份被接管的既有文件(等价于原 NixOS 侧 backupFileExtension = "backup")
-  # home.activation.setHmBackup = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
-  #   export HOME_MANAGER_BACKUP_EXT=backup
-  #   export HOME_MANAGER_BACKUP_OVERWRITE=1   # 同名 .backup 已存在时覆盖旧的
-  # '';
-  # home-manager重建时，旧的冲突文件直接进回收站,而不是堆一地的 `.backup`(HM 手册推荐的写法):
-  home.activation.setHmBackup = lib.hm.dag.entryBefore [ "linkGeneration" ] ''
+  # 重建时把人手修改过的冲突文件直接进回收站(而不是堆一地的 .backup)。
+  # ⚠️ 必须赶在 checkLinkTargets 之前导出:该阶段就会读这个变量并处理冲突;
+  # 旧写法 entryBefore [ "linkGeneration" ] 太晚,一遇到新冲突文件就会中止激活:
+  #   Existing file '...' would be clobbered
+  home.activation.setHmBackup = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
     export HOME_MANAGER_BACKUP_COMMAND=${pkgs.trash-cli}/bin/trash
   '';
 
@@ -32,46 +30,40 @@
   ];
 
   home.packages = with pkgs; [
-    # 用户级软件包
-    # 注:firefox / google-chrome / mpv / vlc / libreoffice / sioyek
-    # 已搬到 modules/packages/default.nix(系统侧):它们装好就很少动,
-    # 放系统侧可以让 `nh home switch` 的求值少实例化 7 个包(实测约省 1.6s)。
-    # 增删/升级它们需要 `sudo nh os switch`。
+    # ── 用户级应用 ────────────────────────────────
+    # 注意:firefox / chrome / mpv / vlc / libreoffice / sioyek 在
+    # modules/packages/default.nix(系统侧)。它们很少变,放系统侧可以让
+    # `nh home switch` 的求值少实例化几个包;增删/升级需要 `sudo nh os switch`。
     flclash # 代理客户端(基于 clash meta)
 
-    # cli工具
-    bat # cat替代
-    ripgrep # grep替代
-    fd # find替代
-    dust # du替代，显示目录结构
-    # tree # 和dust类似
-    # eza # ls替代
-    duf # df替代
-    btop # btop系统监控
-
-    fastfetch # 显示系统基本信息
-    inxi # 全面显示系统信息
+    # ── CLI 工具 ──────────────────────────────────
+    bat # cat 替代
+    ripgrep # grep 替代
+    fd # find 替代
+    dust # du 替代,显示目录结构
+    duf # df 替代
+    btop # 系统监控
+    fastfetch # 系统信息
+    inxi # 硬件/系统详情
     gnumake
 
-    # lsp
-    nixd # nix语言的lsp
-    # nil    # nix语言的lsp
-    nixfmt # nix官方格式器
+    # ── LSP / 格式化 ──────────────────────────────
+    nixd # Nix LSP
+    nixfmt # Nix 格式化
     rust-analyzer
     rustfmt
     pyright
     ruff
 
-    # ── 排版 / Typst ────────────────────────────────
-    typst # 编译器本体(typst compile / watch)
-    tinymist # LSP + 实时预览 + 格式化(编辑器集成用)
+    # ── 排版 / Typst ──────────────────────────────
+    typst # 编译器
+    tinymist # LSP + 实时预览 + 格式化
   ];
 
-  # 设置用户级默认编辑器，sudo -e也可以使用
+  # 默认编辑器(sudo -e 也会用)。
   home.sessionVariables = {
     SUDO_EDITOR = "hx";
     EDITOR = "hx";
     VISUAL = "hx";
   };
-
 }
