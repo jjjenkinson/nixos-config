@@ -1,5 +1,5 @@
 # Helix。版本由 overlays/unstable.nix 决定(不写 package 即 pkgs.helix)。
-# 设为默认编辑器由 home/jiro/default.nix 的 EDITOR/VISUAL 负责。
+# 设为默认编辑器由 home/common/default.nix 的 EDITOR/VISUAL 负责。
 { pkgs, lib, ... }:
 
 {

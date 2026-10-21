@@ -49,8 +49,8 @@
 
     # 固定 flake 路径后,`nh os switch` 不用带 --flake。
     # 用仓库真实路径而不是 /etc/nixos 软链:软链丢了 nh 就会报错。
-    # (/etc/nixos 软链仍建议保留,方便手工 nixos-rebuild。)
-    flake = "${config.users.users.jiro.home}/nixos-config";
+    # 路径跟着主用户走 —— 占位主机 HHHH 上就是 /home/XXXX/nixos-config。
+    flake = "${config.users.users.${config.my.user.name}.home}/nixos-config";
 
     clean = {
       enable = true;

@@ -34,7 +34,7 @@
 
       # 家目录快照:/home 丢了/改坏了,系统回滚救不回来。
       # 快照是 btrfs 的写时复制,只占“改动量”,不会把整个 home 复制一份。
-      # 前提是 /home/.snapshots 这个子卷已存在,由 hosts/XPS9560/disks.nix 保证。
+      # 前提是 /home/.snapshots 这个子卷已存在,由对应主机的 disks.nix 保证。
       home = {
         SUBVOLUME = "/home";
         TIMELINE_CREATE = true;

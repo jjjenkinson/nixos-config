@@ -1,4 +1,9 @@
-{ config, pkgs, ... }:
+{
+  config,
+  hostName,
+  pkgs,
+  ...
+}:
 
 let
   # 仓库的绝对路径。
@@ -85,8 +90,8 @@ in
       # options.home-manager → HM 是独立模式,不在 nixosConfigurations 里,要单独给
       lsp.nixd.settings = {
         nixpkgs.expr = "import (builtins.getFlake \"${repo}\").inputs.nixpkgs { }";
-        options.nixos.expr = "(builtins.getFlake \"${repo}\").nixosConfigurations.XPS9560.options";
-        options.home-manager.expr = "(builtins.getFlake \"${repo}\").homeConfigurations.\"jiro@XPS9560\".options";
+        options.nixos.expr = "(builtins.getFlake \"${repo}\").nixosConfigurations.${hostName}.options";
+        options.home-manager.expr = "(builtins.getFlake \"${repo}\").homeConfigurations.\"${config.home.username}@${hostName}\".options";
         diagnostic.suppress = [ "sema-extra-with" ]; # 抑制 with 表达式的告警
       };
 

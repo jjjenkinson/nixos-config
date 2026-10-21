@@ -1,8 +1,8 @@
 # ════════════════════════════════════════════════════════════════════════
 # 整份配置的入口。它只做三件事:
 #   1. inputs              声明依赖(nixpkgs、home-manager)
-#   2. nixosConfigurations 系统配置 → `nh os switch` / `nixos-rebuild switch --flake .#XPS9560`
-#   3. homeConfigurations  用户配置 → `nh home switch` / `home-manager switch --flake .#jiro@XPS9560`
+#   2. nixosConfigurations 系统配置 → `nh os switch`
+#   3. homeConfigurations  用户配置 → `nh home switch`
 # 具体内容都在 hosts/、modules/、home/ 里,这里只负责组装。
 # ════════════════════════════════════════════════════════════════════════
 {
@@ -26,14 +26,13 @@
     home-manager = {
       # url = "github:nix-community/home-manager/release-26.05";
 
-      url = "git+https://github.com/nix-community/home-manager.git?ref=release-26.05&shallow=1"; # follows:让 home-manager 复用同一个 nixpkgs,避免出现两份 nixpkgs
+      url = "git+https://github.com/nix-community/home-manager.git?ref=release-26.05&shallow=1"; # 让 home-manager 复用同一个 nixpkgs
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs =
     {
-      self,
       nixpkgs,
       home-manager,
       ...
@@ -50,7 +49,7 @@
       };
 
       # ── overlays:所有 overlay 的唯一入口 ───────────────────────────
-      # 当前启用了 unstable;不需要时把下面这段 import 整段注释掉即可(也就是overlay列表为空)
+      # 当前启用了 unstable;不需要时把下面这段 import 整段注释掉即可(overlay 列表为空),
       # 系统会回到纯 stable(安装文件不用改)。名单在 overlays/unstable.nix。
       overlays = [
         (import ./overlays/unstable.nix {
@@ -64,34 +63,71 @@
         inherit system overlays;
         config = pkgsConfig;
       };
+
+      # ── 主机表:新增/改名机器只改这里 ────────────────────────────────
+      # 键 = 主机名(= hosts/<主机名>/ 目录名 = nixosConfigurations 的属性名)
+      # user = 登录账号(= home/<用户名>/ 目录名)
+      #
+      # 第二台机器现在是占位项 HHHH / XXXX,四处的名字必须一致:
+      #   hosts/HHHH/   home/XXXX/   本表   hosts/HHHH/default.nix 里的 my.user.name
+      #
+      # git 身份、默认编辑器等个人设置不在这里,而在 home/<user>/default.nix 里,
+      # 这样 flake 只负责「哪台机器用哪个账号」。
+      hosts = {
+        XPS9560 = {
+          user = "jiro";
+        };
+        HHHH = {
+          user = "XXXX"; # ← 占位,换成真实用户名
+        };
+      };
     in
     {
       # ── 系统配置 ──────────────────────────────────────────────────────
-      nixosConfigurations = {
-        XPS9560 = nixpkgs.lib.nixosSystem {
+      # mapAttrs 把主机表展开成:
+      #   nixosConfigurations.XPS9560 / nixosConfigurations.HHHH
+      # 每台机器一个 nixosSystem,但共享同一份 pkgsConfig / overlays。
+      nixosConfigurations = nixpkgs.lib.mapAttrs (
+        name: _:
+        nixpkgs.lib.nixosSystem {
           inherit system;
-          # specialArgs:把 flake 的 inputs 传给所有 NixOS 模块(模块里可用 inputs.xxx)
-          specialArgs = { inherit inputs; };
+          # hostName 传给 NixOS 模块,hosts/<name>/default.nix 用它设置 networking.hostName
+          specialArgs = {
+            inherit inputs;
+            hostName = name;
+          };
           modules = [
-            ./hosts/XPS9560 # 这台机器:硬件 + 要启用哪些模块组
+            ./hosts/${name}
             {
-              # 系统侧也使用同一份 nixpkgs 配置与 overlay 列表,
-              # 这样系统模块里写 pkgs.xxx 会得到和 home 一致的版本。
               nixpkgs.config = pkgsConfig;
               nixpkgs.overlays = overlays;
             }
           ];
-        };
-      };
+        }
+      ) hosts;
 
       # ── 用户配置(独立模式 home-manager,不需要 root)──────────────────
-      homeConfigurations."jiro@XPS9560" = home-manager.lib.homeManagerConfiguration {
-        inherit pkgs; # 复用上面那份 pkgs(等价于原来 NixOS 模块里的 useGlobalPkgs)
-        extraSpecialArgs = {
-          inherit inputs; # unstable 包已由 overlay 接管,模块里统一写 pkgs.xxx
-        };
-        modules = [ ./home/jiro ];
-      };
+      # mapAttrs' 把主机表展开成:
+      #   homeConfigurations."jiro@XPS9560" / homeConfigurations."XXXX@HHHH"
+      # 每个用户 = home/common(共用) + home/<user>(个人目录)。
+      # 用户名 / 主机名通过 extraSpecialArgs 注入,模块里直接当参数用。
+      homeConfigurations = nixpkgs.lib.mapAttrs' (
+        name: h:
+        nixpkgs.lib.nameValuePair "${h.user}@${name}" (
+          home-manager.lib.homeManagerConfiguration {
+            inherit pkgs;
+            extraSpecialArgs = {
+              inherit inputs;
+              hostName = name;
+              userName = h.user;
+            };
+            modules = [
+              ./home/common
+              ./home/${h.user}
+            ];
+          }
+        )
+      ) hosts;
 
       # 让 `nix fmt` 使用 nixfmt 格式化本仓库
       formatter.${system} = pkgs.nixfmt;

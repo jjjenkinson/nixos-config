@@ -8,7 +8,7 @@
 #   代价:增删/升级这些包要走 `sudo nh os switch`,而不是 `nh home switch`。
 #
 # 判断标准:
-#   - 经常改、经常试、跟用户配置绑定的  → home/jiro/default.nix(home.packages)
+#   - 经常改、经常试、跟用户配置绑定的  → home/common/default.nix(home.packages)
 #   - 装好就很少动的大件桌面应用        → 这里
 { pkgs, ... }:
 

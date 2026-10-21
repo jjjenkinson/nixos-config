@@ -2,7 +2,7 @@
 #
 # 分工:
 #   - 本文件(系统侧):安装 niri、注册会话到 SDDM、X11 兼容、noctalia 需要的系统服务
-#   - home/jiro/niri.nix(用户侧):niri 的 config.kdl 与 noctalia 桌面外壳
+#   - home/common/niri.nix(用户侧):niri 的 config.kdl 与 noctalia 桌面外壳
 { pkgs, ... }:
 
 {
@@ -15,7 +15,7 @@
     # 所以不需要 programs.xwayland,也不需要写 spawn-at-startup。
     pkgs.xwayland-satellite
 
-    # niri 默认键位里引用的几个小程序(见 home/jiro/niri.nix 的注释):
+    # niri 默认键位里引用的几个小程序(见 home/common/niri.nix 的注释):
     pkgs.fuzzel # Mod+D 启动器
     pkgs.swaylock # Super+Alt+L 锁屏
     pkgs.brightnessctl # 亮度键
@@ -23,7 +23,7 @@
   ];
 
   # brightnessctl 要写 /sys/class/backlight/*/brightness,默认只有 root 可写。
-  # 这里把该文件交给 video 组(jiro 已在 modules/users/jiro.nix 里加入 video 组)。
+  # 这里把该文件交给 video 组(主用户已在 modules/users 里加入 video 组)。
   services.udev.extraRules = ''
     ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chgrp video /sys/class/backlight/%k/brightness", RUN+="${pkgs.coreutils}/bin/chmod g+w /sys/class/backlight/%k/brightness"
   '';
@@ -35,7 +35,7 @@
   # noctalia 会用到 freedesktop 音效主题
   xdg.sounds.enable = true;
 
-  # 登录管理器仍然是 SDDM(见 plasma.nix):
+  # 登录管理器仍然是 SDDM(见 modules/desktop/default.nix,与桌面环境无关):
   # programs.niri 会把 niri.desktop 注册进 displayManager.sessionPackages,
   # 于是登录界面会多出一个 Niri 会话,和 Plasma 并列。
 }

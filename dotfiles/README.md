@@ -9,7 +9,7 @@ Nix store 是只读的：凡是由 Nix 生成的文件，改一个字都要 `nh 
 
 ## 怎么接进 home
 
-在 `home/jiro/*.nix` 里用 out-of-store 软链：
+在 `home/common/*.nix` 里用 out-of-store 软链：
 
 ```nix
 xdg.configFile."niri/config.kdl".source =

@@ -1,4 +1,4 @@
-# Noctalia 桌面外壳(由 niri 在登录后启动,见 home/jiro/niri.nix)。
+# Noctalia 桌面外壳(由 niri 在登录后启动,见 home/common/niri.nix)。
 #
 # 配置管理方式(官方文档「How configuration works」+ 5.3.0 实测):
 #   - ~/.config/noctalia/00-nix.toml  → 仓库里那份文件(out-of-store 软链),
