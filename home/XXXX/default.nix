@@ -22,4 +22,7 @@
   # 默认编辑器(写入 EDITOR / VISUAL / SUDO_EDITOR)。
   # 可选值就是 PATH 里的命令,例如 "hx"、"nvim"、"vim"。
   my.editor = "nvim";
+
+  # 占位主机只有一块 Intel 核显。
+  my.btop.gpuCount = 1;
 }

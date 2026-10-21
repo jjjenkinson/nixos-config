@@ -19,4 +19,7 @@
 
   # 默认编辑器(EDITOR / VISUAL / SUDO_EDITOR)。
   my.editor = "hx";
+
+  # 双显卡:NVIDIA(gpu0)+ Intel 核显(gpu1)。
+  my.btop.gpuCount = 2;
 }

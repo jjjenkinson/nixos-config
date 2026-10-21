@@ -437,6 +437,9 @@ names = [
   nvidia-smi                                        # 查看两张卡状态
   ```
 
+  `glxinfo` 由系统侧的 `mesa-demos` 提供；`nvidia-offload` 本身只是设置
+  `__NV_PRIME_RENDER_OFFLOAD` 等变量后 `exec` 传入的命令，所以命令必须在 `PATH` 里。
+
 - **驱动分支必须是 `legacy_580`**：nixpkgs 的 `stable` 已是 595 系列，
   而 NVIDIA 从 580 之后不再支持 Pascal（GTX 10xx）。升级 nixpkgs 时不要把它改回默认。
 - **不要开 `hardware.nvidia.powerManagement`**：动态断电只支持 Turing 及以后，Pascal 上开了会出问题。
@@ -474,6 +477,12 @@ rm -rf ~/.local/share/fcitx5/rime/build
     `wl-clipboard`（系统剪贴板）
   - **yazi 没有配置热重载**：改 `yazi.nix` 需要 `nh home switch`，然后重开 yazi 才生效
 
+- **btop**：本体由系统侧的 `security.wrappers.btop` 提供（带 `CAP_PERFMON`），
+  所以不用 sudo 就能看 Intel 核显；构建时 `cudaSupport = true` 只是给二进制加
+  `/run/opengl-driver/lib` 的 RUNPATH，让 NVML 能找到 `libnvidia-ml.so.1`（独显）。
+  GPU 面板数量由 `my.btop.gpuCount` 控制（jiro = 2，占位主机 = 1）；
+  配置文件由 `home/common/btop.nix` 生成，是只读软链，
+  所以在 btop 界面里改设置不会持久化，请改 Nix 配置
 - **eza**：`eza` 别名带 `--icons auto` 和 `--git`；HM 生成的 `ls`/`ll`/`la` 默认不带图标，
   需要的话可用 `home.shellAliases` 覆盖（图标需要 Nerd Font）
 - **fzf / zoxide**：fish 与 bash 都启用了 shell 集成：
@@ -489,6 +498,10 @@ rm -rf ~/.local/share/fcitx5/rime/build
 - **编辑器**：终端默认编辑器由 `my.editor` 控制（jiro 用 `hx`，占位用户示例用 `nvim`），
   同时写入 `EDITOR` / `VISUAL` / `SUDO_EDITOR`；Zed 使用 nixd + nixfmt、
   rust-analyzer、pyright + ruff、tinymist
+- **开发 / 排版工具**：`gnumake`、`nixd`/`nixfmt`、`rust-analyzer`/`rustfmt`、
+  `pyright`/`ruff`、`typst`/`tinymist` 放在系统侧（`modules/packages/default.nix`），
+  让 home 闭包更小（实测 884 → 831 个 store 路径）；对冷启动时间的改善很小，
+  主要是精简 profile。升级它们需要 `sudo nh os switch`
 
 ## 注意事项
 

@@ -68,7 +68,7 @@
 # 普通程序(自动走核显):
 #   firefox
 #
-# 需要独显时:
+# 需要独显时(glxinfo 来自系统侧的 mesa-demos):
 #   nvidia-offload glxinfo | grep "OpenGL renderer"
 #   nvidia-offload steam
 #
