@@ -18,6 +18,10 @@ let
   # 给 btop 加上 /run/opengl-driver/lib 的 RUNPATH。
   # 有了它,btop 才能 dlopen 到 libnvidia-ml.so.1(否则非 root 看不到独显)。
   btopGpu = pkgs.btop.override { cudaSupport = true; };
+
+  # Kopuz 不在 nixpkgs 里(stable / unstable 都没有),包定义见 pkgs/kopuz.nix:
+  # 直接拿上游 GitHub release 的 .deb 重新打包,版本跟上游一致。
+  kopuz = pkgs.callPackage ../../pkgs/kopuz.nix { };
 in
 {
   environment.systemPackages = with pkgs; [
@@ -51,6 +55,12 @@ in
     google-chrome # 想要 unstable 版:在 overlays/unstable.nix 的 names 里放开这一项
     mpv
     vlc
+    # 音乐播放器
+    # namida 还不在 nixpkgs 里,要装只能导入独立 flake 或打包
+    tauon
+    kopuz # YouTube Music 客户端(本地打包,见 pkgs/kopuz.nix)
+    lx-music-desktop # 音乐下载
+
     libreoffice
     sioyek # pdf 阅读器
   ];

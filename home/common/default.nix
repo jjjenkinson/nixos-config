@@ -24,6 +24,7 @@
     ./noctalia.nix
     ./git-ssh.nix
     ./btop.nix
+    ./mime.nix # 默认应用设置
   ];
 
   # 本文件有顶层 options,其余配置必须放在显式 config 下。
@@ -58,9 +59,10 @@
       # btop 不在 home 安装:系统侧 security.wrappers.btop 提供带 CAP_PERFMON 的版本
       # (核显/独显都能看),配置在 home/common/btop.nix。
       htop
-      nvtopPackages.intel # Intel GPU 监控(轻量;nvidia/full 会拉整套 CUDA)
       fastfetch # 系统信息
       inxi # 硬件/系统详情
+
+      ffmpeg
 
       # 注意:gnumake、nixd/nixfmt、rust-analyzer/rustfmt、pyright/ruff、
       # typst/tinymist 已移到 modules/packages/default.nix(系统侧)。
@@ -74,6 +76,31 @@
       SUDO_EDITOR = config.my.editor;
       EDITOR = config.my.editor;
       VISUAL = config.my.editor;
+    };
+
+    # ~/ 下的 XDG 用户目录(文件管理器侧栏、xdg-open、双击文件都依赖它)。
+    #
+    # 启用后 Home Manager 会写两个只读文件:
+    #   ~/.config/user-dirs.dirs —— 目录名与路径
+    #   ~/.config/user-dirs.conf —— 内容为 enabled=False,让 xdg-user-dirs-update 别再插手
+    # 所以即使系统 locale 是 zh_CN,也不会再生成「文档 / 下载 / 音乐」这类中文目录名。
+    #
+    # createDirectories:激活时目录不存在就 mkdir(第二台机的新用户需要)。
+    # 这里的路径写成 ${config.home.homeDirectory}/xxx 是必需的——
+    # user-dirs.dirs 只接受 "$HOME/yyy" 或 "/yyy" 两种形式,写相对路径会被忽略。
+    xdg.userDirs = {
+      enable = true;
+      createDirectories = true;
+
+      desktop = "${config.home.homeDirectory}/Desktop";
+      documents = "${config.home.homeDirectory}/Documents";
+      download = "${config.home.homeDirectory}/Downloads";
+      music = "${config.home.homeDirectory}/Music";
+      pictures = "${config.home.homeDirectory}/Pictures";
+      projects = "${config.home.homeDirectory}/Projects";
+      publicShare = "${config.home.homeDirectory}/Public";
+      templates = "${config.home.homeDirectory}/Templates";
+      videos = "${config.home.homeDirectory}/Videos";
     };
   };
 }

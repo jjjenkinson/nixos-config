@@ -33,6 +33,7 @@ let
     "zed-editor"
     "helix"
     "noctalia" # Niri 的桌面外壳,上游迭代很快
+    "tauon"
   ];
 in
 # 标准 overlay 签名。这里不依赖 final/prev,只做「替换」:
