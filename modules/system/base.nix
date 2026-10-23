@@ -6,6 +6,21 @@
     enable = true;
     alsa.enable = true; # 兼容直接用 ALSA 的程序
     pulse.enable = true; # 兼容用 PulseAudio 的程序
+
+    # ── 蓝牙音频不要被 logind 会话状态牵连 ─────────────────────────────
+    # WirePlumber 默认开着「seat 监控」:logind 说座位不是 active 时,
+    # 它会停掉 bluez 监视器,把所有 A2DP endpoint 反注册。
+    # 后果:耳机能连上但立刻断开,bluetoothd 日志是
+    #   a2dp-sink profile connect failed ... Protocol not available
+    # (bluez 源码里 source_record_id == 0 → return -ENOPROTOOPT)。
+    #
+    # 我们的登录管理器 lemurs 会把整段登录维持在一个 logind session 里:
+    # 注销再登录后,同一个 session 变成 State=closing,
+    # WirePlumber 于是误判座位不活跃 → 蓝牙音频失效。
+    # 关掉这个特性后,蓝牙音频不再跟随 logind 状态。
+    wireplumber.extraConfig."51-bluez-no-seat-monitoring" = {
+      "wireplumber.profiles".main."monitor.bluez.seat-monitoring" = "disabled";
+    };
   };
 
   # 桌面/音频软件要低延迟时需要 rtkit 给进程实时优先级。

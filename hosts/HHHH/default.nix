@@ -25,8 +25,11 @@
   networking.hostName = hostName;
   my.user.name = userName; # modules/users 默认给它 wheel 组,所以是管理员
 
-  # 这台只要 Niri。登录管理器与桌面无关,仍由 modules/desktop 启用。
-  my.desktop.plasma.enable = false;
+  # 这台只要 Niri(登录管理器与桌面无关,仍由 modules/desktop 启用)。
+  # Niri 默认就是开的(my.desktop.niri.enable = true),
+  # Plasma 默认关(my.desktop.plasma.enable = false),两者都不用写。
+  # 想装 KDE 就加 `my.desktop.plasma.enable = true;`,想装 Mango 就加
+  # `my.desktop.mango.enable = true;`。
 
   # 首次安装时的 NixOS 版本,决定部分兼容行为;装好后不要改。
   system.stateVersion = "26.05";

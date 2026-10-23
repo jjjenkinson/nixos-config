@@ -68,8 +68,8 @@ binds {
     Mod+N hotkey-overlay-title="Open the default browser" { spawn "firefox"; }
 
     // niri默认音量调节步进为0.1,太大了，这里调小
-    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.03+ -l 1.0"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.03-"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.04+ -l 1.0"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.04-"; }
 
 
     // 示例：绑定到 Ctrl+Alt+Delete
@@ -87,6 +87,7 @@ binds {
 
 }
 
+screenshot-path "~/Pictures/Screenshots/prtScr-%Y%m%d-%H%M%S.png"
 layout {
     gaps 12
     focus-ring {
@@ -102,4 +103,9 @@ layout {
 window-rule {
     match is-focused=false
     opacity 0.8
+}
+
+animations {
+       // Slow down all animations by this factor. Values below 1 speed them up instead.
+    slowdown 1.2
 }

@@ -32,6 +32,13 @@ let
     "zed-editor"
     "helix"
     "noctalia" # Niri 的桌面外壳,上游迭代很快
+
+    # Wayland 合成器。注意两个通道的命名差异:
+    #   属性名(overlay 的键):两个通道都叫 mangowc → 必须写 "mangowc"
+    #   包名(pname)        :stable 叫 mangowc-0.12.8,unstable 叫 mango-0.18.2
+    #                          (unstable 里还有 mango 这个别名属性,不要用它,
+    #                           因为 nixpkgs 的 programs.mangowc 模块找的是 pkgs.mangowc)
+    "mangowc"
   ];
 in
 # 标准 overlay 签名。这里不依赖 final/prev,只做「替换」:

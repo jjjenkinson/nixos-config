@@ -86,7 +86,7 @@
       # 放在这里统一注入,hosts/<主机名>/default.nix 就只需要关心
       # 「这台机器的硬件和外设」,不用再抄一遍四行 ../../modules/...。
       # 某台机器不想要其中某一层时,再在它的 default.nix 里用 disabledModules
-      # 或选项开关处理(例如桌面环境用 my.desktop.plasma.enable)。
+      # 或选项开关处理(例如桌面环境用 my.desktop.niri / plasma / mango).enable)。
       commonModules = [
         ./modules/system # 系统基础
         ./modules/packages # 系统级软件包

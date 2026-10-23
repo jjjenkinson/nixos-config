@@ -35,6 +35,7 @@
     ./helix.nix
     ./zed-editor.nix
     ./niri.nix
+    ./mango.nix # mango 的 config.conf(软链到 dotfiles,热重载)
     ./noctalia.nix
     ./git-ssh.nix
     ./btop.nix

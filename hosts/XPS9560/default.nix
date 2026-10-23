@@ -24,4 +24,11 @@
   # 首次安装时的 NixOS 版本,决定部分默认行为的兼容方式;
   # 升级系统后也不要改。
   system.stateVersion = "26.05";
+
+  # 本机额外想要的桌面会话:登录界面里会多一个 Mango。
+  my.desktop.mango.enable = true;
+
+  # Plasma 现在默认关(整套配置的主力是 Niri / Mango),这台机器要用就显式打开。
+  my.desktop.plasma.enable = true;
+  # Niri 默认就是开的(my.desktop.niri.enable = true),不用写。
 }

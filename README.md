@@ -3,10 +3,10 @@
 个人 NixOS 配置：**flake** 统一管理，Home Manager 以**独立模式**运行。
 当前系统为 `NixOS 26.05`。
 
-| 主机      | 用户   | 桌面            | 说明                                      |
-| --------- | ------ | --------------- | ----------------------------------------- |
-| `XPS9560` | `jiro` | Plasma 6 + Niri | 真实在用的机器                            |
-| `HHHH`    | `XXXX` | 仅 Niri         | **占位模板**，换成真实主机名/用户名后再用 |
+| 主机      | 用户   | 桌面                    | 说明                                      |
+| --------- | ------ | ----------------------- | ----------------------------------------- |
+| `XPS9560` | `jiro` | Plasma 6 + Niri + Mango | 真实在用的机器                            |
+| `HHHH`    | `XXXX` | 仅 Niri                 | **占位模板**，换成真实主机名/用户名后再用 |
 
 > `HHHH` 和 `XXXX` 是占位名称。真正要改的只有两处目录名 + 一条主机表：
 > `hosts/HHHH/`（主机名）、`home/XXXX/`（用户名）、`flake.nix` 的主机表。
@@ -113,9 +113,9 @@ home.sessionVariables.EDITOR = config.my.editor;
 > 没有 `options` 的文件可以直接写 `my.xxx = ...`。
 
 同样的机制也用在系统侧：`modules/users/default.nix` 声明 `my.user`，
-`hosts/*/default.nix` 赋值；`modules/desktop/default.nix` 声明
-`my.desktop.plasma.enable`，`hosts/XPS9560/default.nix` 用默认值 `true`，
-`hosts/HHHH/default.nix` 显式设为 `false`。
+`hosts/*/default.nix` 赋值；三个桌面开关各自声明在自己的文件里
+（`plasma.nix` / `niri.nix` / `mango.nix`），默认值是 `false` / `true` / `false`，
+由 `hosts/*/default.nix` 按机器覆盖。
 
 ### 4. 主机名是怎么确定的
 
@@ -151,7 +151,7 @@ home.sessionVariables.EDITOR = config.my.editor;
 │   │   ├── external-disks.nix    # 额外分区（NTFS 数据盘 /mnt/data）
 │   │   └── gpu.nix               # 双显卡：核显 + NVIDIA（PRIME offload）
 │   └── HHHH/                     # 占位主机（纯 Niri 的最小模板）
-│       ├── default.nix           # my.desktop.plasma.enable = false + 核显/固件
+│       ├── default.nix           # 只需写硬件；Niri 默认开，Plasma/Mango 默认关
 │       └── hardware-configuration.nix  # 占位存根（含假挂载点），安装时覆盖
 ├── modules/                      # 与机器无关的系统配置（由 flake 的 commonModules 注入）
 │   ├── system/
@@ -162,9 +162,11 @@ home.sessionVariables.EDITOR = config.my.editor;
 │   │   ├── btrfs.nix             # scrub、fstrim、snapper、.snapshots 子卷（按挂载点自动生效）
 │   │   └── locale.nix            # 时区、语言、终端/GUI 的消息语言策略
 │   ├── desktop/
-│   │   ├── default.nix           # desktop 层入口 + 登录器（lemurs）
-│   │   ├── plasma.nix            # Plasma 6（受 my.desktop.plasma.enable 控制）
-│   │   ├── niri.nix              # Niri（平铺合成器），与 Plasma 并列可选
+│   │   ├── default.nix           # desktop 层入口（只做组装：imports + 共享的 KDE 菜单文件）
+│   │   ├── login-manager.nix     # 登录界面 lemurs + 控制台字体 + PAM seat 补丁
+│   │   ├── plasma.nix            # Plasma 6（my.desktop.plasma.enable，默认 false）
+│   │   ├── niri.nix              # Niri（my.desktop.niri.enable，默认 true）
+│   │   ├── mango.nix             # MangoWC（my.desktop.mango.enable，默认 false）
 │   │   ├── fonts.nix             # 字体与 fontconfig 默认字体
 │   │   └── input-method.nix      # fcitx5 + Rime 雾凇拼音
 │   ├── packages/
@@ -180,6 +182,7 @@ home.sessionVariables.EDITOR = config.my.editor;
     │   ├── neovim.nix            # Neovim
     │   ├── helix.nix             # Helix（unstable）
     │   ├── niri.nix              # niri 配置（生成 base.kdl + 挂 dotfiles 里的 config.kdl）
+    │   ├── mango.nix             # mango 配置（挂 dotfiles 里的 config.conf）
     │   ├── noctalia.nix          # Noctalia 外壳（unstable）+ 挂 dotfiles 里的配置
     │   ├── zed-editor.nix        # Zed（unstable）与语言服务器
     │   ├── btop.nix              # btop 的 GPU 监控配置（本体在系统侧）
@@ -193,6 +196,8 @@ home.sessionVariables.EDITOR = config.my.editor;
 dotfiles/                         # 自己手改的用户配置（不走 Nix 生成）
 ├── niri/
 │   └── config.kdl                # ← 日常改这里；保存即热重载，不用 rebuild
+├── mango/
+│   └── config.conf               # ← 同上；mango 自带 auto_reload_config=1
 └── noctalia/
     └── 00-nix.toml               # Noctalia 基础配置（保存即热重载）
 ```
@@ -217,7 +222,7 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 | 引导     | systemd-boot（EFI，保留 15 个旧代）                                                             |
 | 文件系统 | btrfs（`@` `/home` `/nix` `/var/log` `/var/cache` `@snapshots`）+ 独立 swap 分区 + vfat `/boot` |
 | 快照     | snapper（`/` 与 `/home`，每日 7、每周 4）+ btrfs 自动 scrub                                     |
-| 桌面     | KDE Plasma 6；Niri + Noctalia（unstable）。登录界面 lemurs 可选会话                             |
+| 桌面     | KDE Plasma 6；Niri + Noctalia（unstable）；MangoWC。登录界面 lemurs 可选会话                    |
 | 声音     | PipeWire（含 ALSA/PulseAudio 兼容）                                                             |
 | 显卡     | Intel HD 630 核显 + NVIDIA GTX 1050M，PRIME offload（`nvidia-offload` 按需调用独显）            |
 | 网络     | NetworkManager                                                                                  |
@@ -294,7 +299,9 @@ sudo nixos-rebuild switch --flake .#HHHH
    `nixosConfigurations.<主机名>`、`homeConfigurations."<用户>@<主机>"` 全部自动对齐。
 3. **`hosts/<真实主机名>/default.nix`**：只确认硬件/桌面开关，不用写用户名
    ```nix
-   my.desktop.plasma.enable = false;    # 要 KDE 就删掉这行或设为 true
+   # Niri 默认就是开的；想装 KDE / Mango 再显式打开：
+   my.desktop.plasma.enable = true;
+   # my.desktop.mango.enable = true;
    ```
 4. **`home/<真实用户名>/default.nix`**：填个人身份
    ```nix
@@ -376,6 +383,7 @@ names = [
   "zed-editor"
   "helix"
   "noctalia" # Niri 的桌面外壳（unstable 更新更快）
+  "mangowc" # 属性名是 mangowc，包/二进制叫 mango
 ];
 ```
 
@@ -389,13 +397,20 @@ names = [
 
 ---
 
-## 桌面（Plasma + Niri / 纯 Niri）
+## 桌面（Plasma + Niri + Mango / 纯 Niri）
 
-- **XPS9560**：登录时列出 `Plasma (Wayland)`、`Plasma (X11)` 和 `Niri`；`HHHH` 关掉 Plasma，只留 `Niri`
-- **开关**：`modules/desktop/default.nix` 里的 `my.desktop.plasma.enable`（默认 `true`），
-  `hosts/HHHH/default.nix` 里设为 `false`
+- **XPS9560**：登录时列出 `Plasma (Wayland)`、`Plasma (X11)`、`Niri` 和 `Mango`；
+  `HHHH` 关掉 Plasma、也没开 Mango，只留 `Niri`
+- **开关**（三个选项各自声明在自己的文件里，`hosts/*/default.nix` 按机器覆盖）：
+
+  | 选项                       | 默认    | 声明位置                     | 本仓库里的取值 |
+  | -------------------------- | ------- | ---------------------------- | -------------- |
+  | `my.desktop.niri.enable`   | `true`  | `modules/desktop/niri.nix`   | 两台都开       |
+  | `my.desktop.plasma.enable` | `false` | `modules/desktop/plasma.nix` | 仅 XPS9560 开  |
+  | `my.desktop.mango.enable`  | `false` | `modules/desktop/mango.nix`  | 仅 XPS9560 开  |
+
 - **登录管理器**：`lemurs`（纯文本 TUI，跑在 tty1，不需要合成器），
-  定义在 `modules/desktop/default.nix`，与桌面环境无关，两台机器共用
+  定义在 `modules/desktop/login-manager.nix`，与桌面环境无关，两台机器共用
   - 配置只有三项：`username_field.remember`、`environment_switcher.remember`
     （这两项本来就是 lemurs 默认值，写出来是为了让行为「看得见」），
     以及 `environment_switcher.max_display_length = 16`
@@ -428,12 +443,19 @@ names = [
     应该看到 `Seat=seat0; vc1`、`TTY=tty1`
 - **排查**：`/var/log/lemurs.log`（主流程）、`/var/log/lemurs.client.log`（会话输出）
 - **外观**（lemurs 是纯文本 TUI，所以「字号」不归它管）：
-  - **字号 = 控制台字体**：`console.font = "ter-128n"` +
+  - **字号 = 控制台字体**：`console.font = "ter-124n"` +
     `console.packages = [ pkgs.terminus_font ]`（1080p 下 137 列 × 38 行；
     想更大用 `ter-132n`，小一点用 `ter-124n`）。对所有 tty 生效，包括 Ctrl+Alt+F2
   - 登录表单在屏幕上方而非居中：这是 lemurs 0.4.0 写死的布局
     （`src/ui/chunks.rs`），上游也没有配置项。曾经用一个小 patch 居中，
     但为了避免 nixpkgs 升级时构建失败，已经去掉（保持原版上游代码）
+- **蓝牙音频会随会话「关闭」而失效（已修）**：lemurs 把整段登录维持在一个 logind session 里，
+  注销再登录后同一个 session 会变成 `State=closing`；WirePlumber 默认的「seat 监控」
+  一看座位不活跃就停掉 bluez 监视器，把所有 A2DP endpoint 反注册。
+  表现：耳机能连上但立刻断开，`journalctl -u bluetooth` 里是
+  `a2dp-sink profile connect failed … Protocol not available`
+  （bluez 源码里 `source_record_id == 0` → `-ENOPROTOOPT`）。
+  修法：`modules/system/base.nix` 给 WirePlumber 关掉 `monitor.bluez.seat-monitoring`
 - **系统侧 / 用户侧分工**：`modules/desktop/niri.nix` 负责装 niri、注册会话、
   配 X11 兼容与 noctalia 需要的服务；`home/common/niri.nix` 负责 `config.kdl` 与 noctalia
 - **配置分两层**：
@@ -450,6 +472,70 @@ names = [
   niri 会自动拉起它（也会自动重启），不用写 `spawn-at-startup`
 - **输入法**：fcitx5 走 Wayland `text-input` 协议；niri 模块已开启 xdg-autostart，
   所以 fcitx5 会随会话自启
+
+### Mango（MangoWC）
+
+- **是什么**：基于 dwl + scenefx 的平铺合成器，配置是一份 `key=value` 文本文件，
+  按键手感接近 dwm/awesome（`Alt` 系切窗口、`Ctrl` 系切 tag），标签式工作区
+
+- **版本**：走 unstable（`0.18.x`），名单在 `overlays/unstable.nix` 的 `mangowc`
+- **命名坑**：两个通道属性名都叫 `mangowc`（这也是 overlay 的键），
+  但**包名（pname）不一样**：stable 是 `mangowc-0.12.8`，unstable 是 `mango-0.18.2`；
+  unstable 里另有一个 `mango` 别名属性，**不要用它**，`programs.mangowc` 模块找的是 `pkgs.mangowc`
+- **系统侧**：`modules/desktop/mango.nix`，一个 `programs.mangowc.enable = true` 搞定
+  （装包 + `xdg.portal`（wlr/gtk）+ 注册登录会话），受 `my.desktop.mango.enable` 控制
+- **用户侧**：`home/common/mango.nix` 把 `dotfiles/mango/config.conf` 软链到
+  `~/.config/mango/config.conf`（mango 只从 `$HOME/.config/mango/` 开始找，见 `src/config/load.c`）
+- **热重载**：mango 自带 `auto_reload_config=1`，保存 `config.conf` 立即生效；
+  手动重载可用 `mmsg dispatch reload_config`（默认键位 `SUPER+R`）
+- **键位对照（仅供参考，本机保持上游默认，没有改成 niri 风格）**：
+
+  | 动作                 | niri（Mod = Super）               | mango（上游默认）                      |
+  | -------------------- | --------------------------------- | -------------------------------------- |
+  | 终端                 | `Mod+T`                           | `Alt+Return`                           |
+  | 启动器               | `Mod+D`                           | `Alt+Space`                            |
+  | 关窗                 | `Mod+Q`                           | `Alt+Q`                                |
+  | 退出合成器           | `Mod+Shift+E`                     | `Super+M`                              |
+  | 焦点                 | `Mod+H/J/K/L` 或方向键            | `Alt+方向键`（无 HJKL）                |
+  | 移动窗口             | `Mod+Ctrl+H/J/K/L`                | `Super+Shift+方向键`                   |
+  | 切工作区             | `Mod+1..9`                        | `Ctrl+1..9`（tag）                     |
+  | 把窗口移到别的工作区 | `Mod+Ctrl+1..9`                   | `Alt+1..9`                             |
+  | 循环列宽             | `Mod+R`                           | `Alt+X`                                |
+  | 最大化 / 全屏 / 浮动 | `Mod+F` / `Mod+Shift+F` / `Mod+V` | `Alt+A` / `Alt+F` / `Alt+\`            |
+  | 锁屏                 | `Super+Alt+L`                     | 未绑（可加 `Super+Alt+L → swaylock`）  |
+  | 截图                 | `Mod+P`                           | 未绑（mango 无 screenshot dispatcher） |
+
+  mango 独有的键：`Super+N` 切平铺算法、`Super+O` overlay、`Super+G` 全局窗口、
+  `Super+I` / `Super+Shift+I` 最小化/恢复、`Alt+Tab` 跳转标签、`Alt+Z` 便签窗口、
+  `Alt+Shift+X/Z` 调间隙、`Ctrl+Shift+方向键` 移浮动窗、`Ctrl+Alt+方向键` 缩放浮动窗
+
+  > 格式坑：`bind=` 第一个字段是**修饰键**，无修饰键必须写 `NONE`
+  > （如 `bind=NONE,XF86AudioRaiseVolume,spawn,...`），否则会被当成“未知键”
+
+- **登录后自启**：
+  - 外壳：`exec_once=noctalia`
+  - 其它应用走标准 XDG autostart：
+    `exec_once=systemctl --user start mango-xdg-autostart.service`
+  - 原理：mango 只激活 `graphical-session.target`，**不会**启动
+    `xdg-desktop-autostart.target`；而后者是 `RefuseManualStart=yes`，
+    不能直接 `systemctl start`。所以 `modules/desktop/mango.nix` 补了一个 oneshot 单元
+    （`Wants=xdg-desktop-autostart.target`），由 mango 在会话起来后触发
+    （niri 是把这行写在自己的 `niri.service` 里）
+  - `OnlyShowIn=KDE/GNOME` 的条目会被 systemd 用 `ExecCondition` 自动跳过，
+    不会把 KDE 那套 autostart 拉起来
+  - 新增自启应用：写 `~/.config/autostart/*.desktop`，或让应用自己注册
+    （如 FlClash 设置里的「自动启动」开关），不需要再改 Nix 配置
+- **切换布局**：`Super+N` 循环平铺算法，并用通知显示当前算法名
+  （`mango-layout` 脚本：`mmsg dispatch switch_layout` → `mmsg get tags` 查符号 → `noctalia msg notification-show`）
+- **会话 / 电源**：`Ctrl+Alt+Delete` 打开 noctalia 会话面板（关机/重启/注销，与 niri 一致）；
+  `Super+Alt+L` 锁屏（swaylock，需密码解锁，与 niri 一致）
+- **快捷键速查**：`Super+Shift+/` 用浮动 kitty 打开 `dotfiles/mango/KEYS.md`
+  （软链到 `~/.config/mango/KEYS.md`；`window_rule` 让它浮动、居中、占屏 62%×80%）
+- **截图**：`Super+P` 选区 → **satty 标注** → 回车存盘 + 进剪贴板；`Super+Ctrl+P` 整屏直出。
+  工具链 `grim` + `slurp` + `satty` + `wl-clipboard` 由 `home/common/mango.nix` 安装
+  （spectacle 在非 KWin 的 Wayland 下会直接拒绝运行，mango 里用不了）
+- **X11 程序**：mango 编译时开了 Xwayland（nixpkgs 默认 `enableXWayland = true`），
+  不需要 `xwayland-satellite`
 
 ## Noctalia 的设置怎么管
 
