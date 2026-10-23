@@ -51,7 +51,7 @@ spawn-at-startup "noctalia"
 //   注意:Mod+Shift+P 已被 base.kdl 用作 power-off-monitors,所以这里用无/ Ctrl / Alt。
 //
 // 截图保存位置由 base.kdl 里的 screenshot-path 决定:
-//   ~/Pictures/Screenshots/Screenshot from <日期>.png
+//   ~/Pictures/Screenshots/ptrScr-<日期>.png
 // 同时会放进剪贴板。
 //
 // 注意:键位必须写在 binds { } 块里(和 base.kdl 里的同名块会合并)。
@@ -74,6 +74,13 @@ binds {
 
     // 示例：绑定到 Ctrl+Alt+Delete
     Ctrl+Alt+Delete hotkey-overlay-title="会话菜单" { spawn "noctalia" "msg" "panel-toggle" "session"; }
+
+    // 快捷键速查表(全部键位,见 dotfiles/niri/KEYS.md)。
+    // 用 Mod+Slash 而不是 Mod+Shift+Slash:后者已被 base.kdl 用作 niri 自带的
+    // 「重要快捷键」浮层,不能覆盖。两者互补 —— 浮层快,KEYS.md 全。
+    // 用浮动 kitty + bat 显示,不依赖浏览器。
+    Mod+Slash hotkey-overlay-title="Niri 快捷键速查" { spawn-sh "kitty --class niri-keys -T 'Niri 快捷键' -e bat --style=plain --paging=always \"$HOME/.config/niri/KEYS.md\""; }
+
     // 把下面的几个快捷键实际上默认已设置，这里重设只是为了加进hotkey菜单，
     // niri默认 Mod+Shift+/ 显示重要的hotkey菜单
     Mod+Minus hotkey-overlay-title="Adjust column width by -10%" { set-column-width "-10%"; }
@@ -103,6 +110,14 @@ layout {
 window-rule {
     match is-focused=false
     opacity 0.8
+}
+
+// 速查表窗口(Mod+Slash):浮动 + 固定占屏比例
+window-rule {
+    match app-id=r#"^niri-keys$"#
+    open-floating true
+    default-column-width { proportion 0.62; }
+    default-window-height { proportion 0.8; }
 }
 
 animations {

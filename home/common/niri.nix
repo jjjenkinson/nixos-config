@@ -28,6 +28,7 @@ let
   # 路径统一来自 my.repoDir(home/common/default.nix),
   # 不要在这里写死 ~/nixos-config —— 换目录名时只改选项默认值。
   editableConfig = "${config.my.repoDir}/dotfiles/niri/config.kdl";
+  editableKeys = "${config.my.repoDir}/dotfiles/niri/KEYS.md";
 in
 {
   # Nix 管理的基底
@@ -35,4 +36,8 @@ in
 
   # 日常编辑的主配置:软链到仓库文件,改了就地生效
   xdg.configFile."niri/config.kdl".source = config.lib.file.mkOutOfStoreSymlink editableConfig;
+
+  # 快捷键速查(Mod+Slash 用 kitty + bat 打开)。
+  # 同 mango:放进 ~/.config/niri/ ,让绑定只依赖 $HOME,不依赖仓库位置。
+  xdg.configFile."niri/KEYS.md".source = config.lib.file.mkOutOfStoreSymlink editableKeys;
 }
