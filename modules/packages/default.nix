@@ -57,7 +57,6 @@ in
     vlc
     # 音乐播放器
     # namida 还不在 nixpkgs 里,要装只能导入独立 flake 或打包
-    tauon
     kopuz # YouTube Music 客户端(本地打包,见 pkgs/kopuz.nix)
     lx-music-desktop # 音乐下载
 

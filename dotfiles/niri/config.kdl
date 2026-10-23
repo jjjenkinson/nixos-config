@@ -32,3 +32,74 @@ spawn-at-startup "noctalia"
 // layout {
 //     gaps 8
 // }
+
+// ── 截屏 ────────────────────────────────────────────────────────────────
+// niri 自带截图功能(不依赖 grim / spectacle / portal),默认配置里已经绑了:
+//   Print        → 截图 UI
+//   Ctrl+Print   → 整屏直接截
+//   Alt+Print    → 当前窗口直接截
+// 但 75% 配列(如迈从 G75)没有独立 PrtSc 键,所以这里补一组 Mod+P:
+//
+//   Mod+P       → 截图 UI(拖拽选区 / 点窗口 / 直接回车 = 全屏)
+//   Mod+Ctrl+P  → 直接截整屏
+//   Mod+Alt+P   → 直接截当前窗口
+//
+// 为什么不用 Fn+Insert(它发出的是 Insert 键)去模拟 PrtSc:
+//   Fn 层是键盘固件,系统只能看到最终的 Insert 键;把它改成 Print 等于
+//   【永久放弃 Insert 键】(终端的插入/覆盖切换、Shift+Insert 粘贴等),
+//   而且接外接键盘时同样生效。用 Mod+P 不牺牲任何键。
+//   注意:Mod+Shift+P 已被 base.kdl 用作 power-off-monitors,所以这里用无/ Ctrl / Alt。
+//
+// 截图保存位置由 base.kdl 里的 screenshot-path 决定:
+//   ~/Pictures/Screenshots/Screenshot from <日期>.png
+// 同时会放进剪贴板。
+//
+// 注意:键位必须写在 binds { } 块里(和 base.kdl 里的同名块会合并)。
+binds {
+    // 截图
+    Mod+P { screenshot; }
+    Mod+Ctrl+P { screenshot-screen; }
+    Mod+Alt+P { screenshot-window; }
+
+    // 文件管理器。默认应用由 home/common/mime.nix 里的 inode/directory 决定。
+    // xdg-open 必须给目标,所以这里就是“用默认文件管理器打开主目录”。
+    // Mod+E hotkey-overlay-title="Open the default file manager" { spawn-sh "xdg-open \"$HOME\""; }
+    // 浏览器。xdg-open 需要网址才能启动,所以直接启动 firefox(与 mime.nix 里的默认一致)。
+    Mod+N hotkey-overlay-title="Open the default browser" { spawn "firefox"; }
+
+    // niri默认音量调节步进为0.1,太大了，这里调小
+    XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.03+ -l 1.0"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.03-"; }
+
+
+    // 示例：绑定到 Ctrl+Alt+Delete
+    Ctrl+Alt+Delete hotkey-overlay-title="会话菜单" { spawn "noctalia" "msg" "panel-toggle" "session"; }
+    // 把下面的几个快捷键实际上默认已设置，这里重设只是为了加进hotkey菜单，
+    // niri默认 Mod+Shift+/ 显示重要的hotkey菜单
+    Mod+Minus hotkey-overlay-title="Adjust column width by -10%" { set-column-width "-10%"; }
+    Mod+Equal hotkey-overlay-title="Adjust column width by 10%" { set-column-width "+10%"; }
+
+    Mod+Comma hotkey-overlay-title="Consume one window from the right to the bottom of the focused column" { consume-window-into-column; }
+    Mod+Period hotkey-overlay-title="Expel the bottom window from the focused column to the right" { expel-window-from-column; }
+
+    Mod+Ctrl+R hotkey-overlay-title="Reset windows height" { reset-window-height; }
+    Mod+Ctrl+Shift+R hotkey-overlay-title="Switch preset windows height" { switch-preset-window-height; }
+
+}
+
+layout {
+    gaps 12
+    focus-ring {
+        on
+        // active-color "#20af68"          // 换成你主题的 accent 色
+        // inactive-color "#3b4261"
+    }
+    // 在第一个工作区上方保留一个空工作区，方便键盘操作
+    empty-workspace-above-first
+}
+
+// 非焦点窗口整体降透明度，焦点窗口保持完全不透明 → 视差感最强
+window-rule {
+    match is-focused=false
+    opacity 0.8
+}

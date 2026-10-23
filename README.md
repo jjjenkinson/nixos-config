@@ -8,8 +8,9 @@
 | `XPS9560` | `jiro` | Plasma 6 + Niri | 真实在用的机器                            |
 | `HHHH`    | `XXXX` | 仅 Niri         | **占位模板**，换成真实主机名/用户名后再用 |
 
-> `HHHH` 和 `XXXX` 是占位名称，四处必须一起改：
-> `hosts/HHHH/`、`home/XXXX/`、`flake.nix` 的主机表、`hosts/HHHH/default.nix` 里的 `my.user.name`。
+> `HHHH` 和 `XXXX` 是占位名称。真正要改的只有两处目录名 + 一条主机表：
+> `hosts/HHHH/`（主机名）、`home/XXXX/`（用户名）、`flake.nix` 的主机表。
+> 主机名和用户名会由 flake 自动注入，不需要在任何 `.nix` 文件里再抄一遍。
 > 具体步骤见 [新增一台主机](#新增一台主机)。
 
 ---
@@ -29,7 +30,9 @@ flake.nix          组装：主机表 → 系统配置 / 用户配置
 ```
 
 - **`modules/`** 里不放任何一台机器的私货（磁盘 UUID、主机名、用户名）。
-- **`hosts/<主机名>/`** 只放与本机硬件绑定、或决定「导入哪些模块组」的内容。
+- **`hosts/<主机名>/`** 只放与本机硬件绑定、或覆盖共享层默认值的内容。
+  四个共享层（`system` / `packages` / `desktop` / `users`）由 `flake.nix` 的
+  `commonModules` 统一注入，host 文件里不用再写 `../../modules/...`。
 - **`home/common/`** 是两个用户共用的用户环境；**`home/<用户名>/`** 只放个人差异。
 
 ### 2. `flake.nix` 如何生成两套输出
@@ -56,9 +59,10 @@ homeConfigurations."XXXX@HHHH"
 flowchart TD
     A["flake.nix 主机表"] --> B["nixosConfigurations.&lt;主机名&gt;"]
     B --> C["imports ./hosts/&lt;主机名&gt;"]
-    C --> D["hosts/&lt;主机名&gt;/default.nix"]
-    D --> E["imports ../../modules/*"]
-    E --> F["模块系统合并 → 系统闭包"]
+    C --> D["hosts/&lt;主机名&gt;/default.nix<br/>只写硬件相关"]
+    A -->|commonModules| E["modules/system·packages·desktop·users"]
+    D --> F["模块系统合并 → 系统闭包"]
+    E --> F
     A --> G["homeConfigurations.&quot;&lt;用户&gt;@&lt;主机名&gt;&quot;"]
     G --> H["home/common + home/&lt;用户名&gt;"]
     H --> I["模块系统合并 → home 闭包"]
@@ -141,25 +145,24 @@ home.sessionVariables.EDITOR = config.my.editor;
 │   └── unstable.nix              # unstable 包名单 + overlay（唯一维护点）
 ├── hosts/
 │   ├── XPS9560/
-│   │   ├── default.nix           # 本机入口：主机名、用户、导入模块
+│   │   ├── default.nix           # 本机入口：只 import 硬件文件 + 覆盖项
 │   │   ├── hardware-configuration.nix  # 安装器生成：磁盘/内核模块，勿手改
-│   │   ├── disks.nix             # 挂载参数 + /home 快照子卷（oneshot 创建）
+│   │   ├── disks.nix             # 本机 btrfs 挂载参数（哪些挂载点要 noatime/压缩）
 │   │   ├── external-disks.nix    # 额外分区（NTFS 数据盘 /mnt/data）
 │   │   └── gpu.nix               # 双显卡：核显 + NVIDIA（PRIME offload）
 │   └── HHHH/                     # 占位主机（纯 Niri 的最小模板）
-│       ├── default.nix           # my.user.name、my.desktop.plasma.enable = false
-│       ├── hardware-configuration.nix  # 占位存根（含假挂载点），安装时覆盖
-│       └── disks.nix             # 只在 btrfs 时补 /home 快照子卷
-├── modules/                      # 与机器无关的系统配置
+│       ├── default.nix           # my.desktop.plasma.enable = false + 核显/固件
+│       └── hardware-configuration.nix  # 占位存根（含假挂载点），安装时覆盖
+├── modules/                      # 与机器无关的系统配置（由 flake 的 commonModules 注入）
 │   ├── system/
 │   │   ├── default.nix           # system 层汇总入口
 │   │   ├── nix.nix               # flakes、二进制缓存、nh
-│   │   ├── base.nix              # PipeWire、蓝牙、网络、journald、nix-ld
+│   │   ├── base.nix              # PipeWire、蓝牙、网络、fwupd、journald、nix-ld
 │   │   ├── boot.nix              # systemd-boot
-│   │   ├── btrfs.nix             # scrub、fstrim、snapper
-│   │   └── locale.nix            # 时区、语言、XDG 目录名
+│   │   ├── btrfs.nix             # scrub、fstrim、snapper、.snapshots 子卷（按挂载点自动生效）
+│   │   └── locale.nix            # 时区、语言、终端/GUI 的消息语言策略
 │   ├── desktop/
-│   │   ├── default.nix           # desktop 层入口 + SDDM（与桌面无关）
+│   │   ├── default.nix           # desktop 层入口 + 登录器（lemurs）
 │   │   ├── plasma.nix            # Plasma 6（受 my.desktop.plasma.enable 控制）
 │   │   ├── niri.nix              # Niri（平铺合成器），与 Plasma 并列可选
 │   │   ├── fonts.nix             # 字体与 fontconfig 默认字体
@@ -170,15 +173,17 @@ home.sessionVariables.EDITOR = config.my.editor;
 │       └── default.nix           # 主用户（用户名由每台主机指定）
 └── home/
     ├── common/                   # 所有用户共用
-    │   ├── default.nix           # 入口：home.packages、备份策略、my.editor 声明
+    │   ├── default.nix           # 入口：home.packages、备份策略、my.editor / my.repoDir 声明
     │   ├── shell.nix             # fish/bash、starship、kitty、eza、代理函数
     │   ├── yazi.nix              # yazi 文件管理器（插件、键位、预览）
     │   ├── git-ssh.nix           # my.git 声明、GitHub SSH 配置
     │   ├── neovim.nix            # Neovim
     │   ├── helix.nix             # Helix（unstable）
-    │   ├── niri.nix              # niri 配置（生成 base.kdl + 挂 config.kdl）
-    │   ├── noctalia.nix          # Noctalia 外壳（unstable）+ 挂基础配置
+    │   ├── niri.nix              # niri 配置（生成 base.kdl + 挂 dotfiles 里的 config.kdl）
+    │   ├── noctalia.nix          # Noctalia 外壳（unstable）+ 挂 dotfiles 里的配置
     │   ├── zed-editor.nix        # Zed（unstable）与语言服务器
+    │   ├── btop.nix              # btop 的 GPU 监控配置（本体在系统侧）
+    │   ├── mime.nix              # 默认应用（my.fileManager）与 MIME 关联
     │   └── rime.nix              # Rime 的 default.custom.yaml（候选数、Shift 行为）
     ├── jiro/                     # jiro 的个人模块目录
     │   └── default.nix           # my.git、my.editor；可继续拆多个文件
@@ -194,10 +199,14 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 
 **命名约定（必须一致）**：
 
-| 名字   | 出现的地方                                                                                          |
-| ------ | --------------------------------------------------------------------------------------------------- |
-| 主机名 | `flake.nix` 主机表的键、`hosts/<主机名>/`、`nixosConfigurations.<主机名>`                           |
-| 用户名 | `flake.nix` 主机表的 `user`、`home/<用户名>/`、`my.user.name`、`homeConfigurations."<用户>@<主机>"` |
+| 名字   | 权威定义（Only one place）                            | 自动到达的地方                                                                |
+| ------ | ----------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 主机名 | `flake.nix` 主机表的键 + `hosts/<主机名>/` 目录名     | `specialArgs.hostName` → `networking.hostName`、`nixosConfigurations.<名>`    |
+| 用户名 | `flake.nix` 主机表的 `user` + `home/<用户名>/` 目录名 | `specialArgs.userName` → `my.user.name`、`homeConfigurations."<用户>@<主机>"` |
+
+> **主机名和用户名都不要写在任何 `.nix` 文件里**。host 文件里只写
+> `networking.hostName = hostName;` 和 `my.user.name = userName;`，
+> 自己就把主机表里的值传进选项系统。
 
 ---
 
@@ -208,7 +217,7 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 | 引导     | systemd-boot（EFI，保留 15 个旧代）                                                             |
 | 文件系统 | btrfs（`@` `/home` `/nix` `/var/log` `/var/cache` `@snapshots`）+ 独立 swap 分区 + vfat `/boot` |
 | 快照     | snapper（`/` 与 `/home`，每日 7、每周 4）+ btrfs 自动 scrub                                     |
-| 桌面     | KDE Plasma 6（SDDM/Wayland）；Niri + Noctalia（unstable）登录界面可切换                         |
+| 桌面     | KDE Plasma 6；Niri + Noctalia（unstable）。登录界面 lemurs 可选会话                             |
 | 声音     | PipeWire（含 ALSA/PulseAudio 兼容）                                                             |
 | 显卡     | Intel HD 630 核显 + NVIDIA GTX 1050M，PRIME offload（`nvidia-offload` 按需调用独显）            |
 | 网络     | NetworkManager                                                                                  |
@@ -218,7 +227,7 @@ dotfiles/                         # 自己手改的用户配置（不走 Nix 生
 | 文件管理 | yazi（TUI，fish 函数 `y` 退出后自动 cd；git 状态、压缩包预览、smart-enter）                     |
 | 编辑器   | Neovim、Helix、Zed（后两者取 unstable）                                                         |
 | 排版     | Typst + Tinymist                                                                                |
-| Nix 缓存 | 中科大 / 清华 / 南京大学镜像，官方 `cache.nixos.org` 自动兜底（上海交大源会卡死，已移除）       |
+| Nix 缓存 | 中科大 / 清华 / 南京大学 / 上海交大（末位）镜像，官方 `cache.nixos.org` 自动兜底                |
 
 > 上表描述的是 XPS9560。`HHHH` 是精简模板：没有 NVIDIA，默认只装 Niri。
 
@@ -270,9 +279,9 @@ sudo nixos-rebuild switch --flake .#HHHH
 
 ### 新增一台主机
 
-以现在的 `HHHH` / `XXXX` 占位为例，**四处一起改**：
+以现在的 `HHHH` / `XXXX` 占位为例，**只需改目录名 + 主机表**：
 
-1. **目录**
+1. **目录**（目录名就是主机名 / 用户名）
    ```bash
    git mv hosts/HHHH hosts/<真实主机名>
    git mv home/XXXX home/<真实用户名>
@@ -281,13 +290,13 @@ sudo nixos-rebuild switch --flake .#HHHH
    ```nix
    <真实主机名> = { user = "<真实用户名>"; };
    ```
-3. **`hosts/<真实主机名>/default.nix`**
+   改完这两处，`networking.hostName`、`my.user.name`、
+   `nixosConfigurations.<主机名>`、`homeConfigurations."<用户>@<主机>"` 全部自动对齐。
+3. **`hosts/<真实主机名>/default.nix`**：只确认硬件/桌面开关，不用写用户名
    ```nix
-   networking.hostName = hostName;      # 不用改，自动来自主机表
-   my.user.name = "<真实用户名>";
    my.desktop.plasma.enable = false;    # 要 KDE 就删掉这行或设为 true
    ```
-4. **`home/<真实用户名>/default.nix`**
+4. **`home/<真实用户名>/default.nix`**：填个人身份
    ```nix
    my.git = {
      userName = "<真实用户名>";
@@ -295,6 +304,9 @@ sudo nixos-rebuild switch --flake .#HHHH
    };
    my.editor = "hx"; # 或 "nvim"
    ```
+
+如果只是加一台全新机器，复制 `hosts/HHHH`（最小模板）比复制 XPS9560 更干净，
+不会带进 NVIDIA 和 NTFS 挂载。
 
 如果只是加一台全新机器，复制 `hosts/HHHH`（最小模板）比复制 XPS9560 更干净，
 不会带进 NVIDIA 和 NTFS 挂载。
@@ -379,10 +391,49 @@ names = [
 
 ## 桌面（Plasma + Niri / 纯 Niri）
 
-- **XPS9560**：SDDM 列出 `Plasma (Wayland)` 和 `Niri`；`HHHH` 关掉 Plasma，只留 `Niri`
+- **XPS9560**：登录时列出 `Plasma (Wayland)`、`Plasma (X11)` 和 `Niri`；`HHHH` 关掉 Plasma，只留 `Niri`
 - **开关**：`modules/desktop/default.nix` 里的 `my.desktop.plasma.enable`（默认 `true`），
   `hosts/HHHH/default.nix` 里设为 `false`
-- **登录管理器**：SDDM 定义在 `modules/desktop/default.nix`，与桌面环境无关，两台机器共用
+- **登录管理器**：`lemurs`（纯文本 TUI，跑在 tty1，不需要合成器），
+  定义在 `modules/desktop/default.nix`，与桌面环境无关，两台机器共用
+  - 配置只有三项：`username_field.remember`、`environment_switcher.remember`
+    （这两项本来就是 lemurs 默认值，写出来是为了让行为「看得见」），
+    以及 `environment_switcher.max_display_length = 16`
+    （默认只有 8，会把 `Plasma (Wayland)` 截成 `Plasma (`）
+  - 会话列表由模块自动指向 `.../desktops/share/{wayland-sessions,xsessions}`
+- **默认上次的会话**：lemurs 记住「上次登录的用户名 + 上次选的桌面环境」，
+  缓存在 `/var/cache/lemurs`，重启后仍然有效；在登录界面里换会话会覆盖它
+- **⚠️ Wayland 会话需要 `seat` 组**：lemurs 用 `setLoginUid = false` 启会话
+  （上游 #166），niri 取显卡/输入设备走 `seatd`。所以主用户的默认组里加了 `seat`
+  （`modules/users/default.nix`），模块会自动启 `services.seatd`
+- **⚠️ 两个必须的补丁（lemurs 0.4.0 的坑，都在 `modules/desktop/default.nix`）**：
+  1. **X11 键鼠全无**：lemurs 默认直接 exec 裸的 `X`，不带 NixOS 生成的
+     `-config .../xserver.conf`（`ModulePath` 在那里），于是报
+     `(EE) Failed to load module "libinput"`。所以 `x11.xserver_path` 换成了
+     一个 wrapper，把 `services.xserver.displayManager.xserverArgs` 带上
+     （并去掉 `-terminate`，否则 `xrdb` 这类一次性客户端会把 X 关掉）。
+     等价修法：nixpkgs PR #568385
+  2. **Plasma (Wayland) 输入密码后被弹回登录界面**：lemurs 在**主进程**里调
+     `pam_open_session`，而且开会话前会把 `XDG_SEAT` / `XDG_VTNR` 从自己环境里删掉，
+     `pam_systemd` 算不出 VT，会话变成 `Seat=` 空、`VTNr=0`。KWin **不用 libseat**，
+     只靠 logind 的 `TakeDevice`，于是报
+     `kwin_wayland: No suitable DRM devices have been found`，
+     整套 Plasma 的 Qt 进程（ksplashqml/plasmashell/kded…）跟着 abort。
+     修法：在 `lemurs` 的 PAM session 栈里插一个 `pam_env`（order 取
+     `systemd.order - 1`，避开已占用的 11900），把 `XDG_SEAT=seat0` /
+     `XDG_VTNR=1` 写进 **PAM 环境**。
+     写进 systemd 服务环境没用（lemurs 会把它删掉，实测无效）。
+     上游 commit `7283f01` 尚未发布（见上游 issue #256 / #249）
+  - 验证：登录后 `loginctl show-session $XDG_SESSION_ID -p Seat -p TTY`
+    应该看到 `Seat=seat0; vc1`、`TTY=tty1`
+- **排查**：`/var/log/lemurs.log`（主流程）、`/var/log/lemurs.client.log`（会话输出）
+- **外观**（lemurs 是纯文本 TUI，所以「字号」不归它管）：
+  - **字号 = 控制台字体**：`console.font = "ter-128n"` +
+    `console.packages = [ pkgs.terminus_font ]`（1080p 下 137 列 × 38 行；
+    想更大用 `ter-132n`，小一点用 `ter-124n`）。对所有 tty 生效，包括 Ctrl+Alt+F2
+  - 登录表单在屏幕上方而非居中：这是 lemurs 0.4.0 写死的布局
+    （`src/ui/chunks.rs`），上游也没有配置项。曾经用一个小 patch 居中，
+    但为了避免 nixpkgs 升级时构建失败，已经去掉（保持原版上游代码）
 - **系统侧 / 用户侧分工**：`modules/desktop/niri.nix` 负责装 niri、注册会话、
   配 X11 兼容与 noctalia 需要的服务；`home/common/niri.nix` 负责 `config.kdl` 与 noctalia
 - **配置分两层**：
@@ -480,7 +531,9 @@ rm -rf ~/.local/share/fcitx5/rime/build
 - **btop**：本体由系统侧的 `security.wrappers.btop` 提供（带 `CAP_PERFMON`），
   所以不用 sudo 就能看 Intel 核显；构建时 `cudaSupport = true` 只是给二进制加
   `/run/opengl-driver/lib` 的 RUNPATH，让 NVML 能找到 `libnvidia-ml.so.1`（独显）。
-  GPU 面板数量由 `my.btop.gpuCount` 控制（jiro = 2，占位主机 = 1）；
+  GPU 面板默认不显示，需要时在 btop 里按 `5` / `6` 打开（`shown_boxes` 里写死
+  GPU 面板会在显卡数量不匹配时让整个布局失效，所以交给运行时）；
+  `shown_gpus = "nvidia intel"` 只探测实际存在的厂商。
   配置文件由 `home/common/btop.nix` 生成，是只读软链，
   所以在 btop 界面里改设置不会持久化，请改 Nix 配置
 - **eza**：`eza` 别名带 `--icons auto` 和 `--git`；HM 生成的 `ls`/`ll`/`la` 默认不带图标，
@@ -498,6 +551,10 @@ rm -rf ~/.local/share/fcitx5/rime/build
 - **编辑器**：终端默认编辑器由 `my.editor` 控制（jiro 用 `hx`，占位用户示例用 `nvim`），
   同时写入 `EDITOR` / `VISUAL` / `SUDO_EDITOR`；Zed 使用 nixd + nixfmt、
   rust-analyzer、pyright + ruff、tinymist
+- **仓库路径**：`my.repoDir`（`home/common/default.nix`，默认 `~/nixos-config`）。
+  `dotfiles/` 里的文件通过 out-of-store 软链挂进 `~/.config`，用的就是这个路径。
+  仓库改名/换目录名时只改这里一处即可（系统侧的 `programs.nh.flake` 同理，
+  在 `modules/system/nix.nix`）
 - **开发 / 排版工具**：`gnumake`、`nixd`/`nixfmt`、`rust-analyzer`/`rustfmt`、
   `pyright`/`ruff`、`typst`/`tinymist` 放在系统侧（`modules/packages/default.nix`），
   让 home 闭包更小（实测 884 → 831 个 store 路径）；对冷启动时间的改善很小，
@@ -516,11 +573,13 @@ rm -rf ~/.local/share/fcitx5/rime/build
 5. 本仓库不含任何私钥或 API Key；Zed 的模型接口只写了地址，密钥需在编辑器内自行填写。
 6. 所有磁盘 UUID 都与本机绑定，迁移到其他机器时需要重新生成
    `hardware-configuration.nix` 并检查 `disks.nix` / `external-disks.nix`。
-7. `/home` 的 snapper 配置要求 `/home/.snapshots` 是一个子卷，
-   由各自主机 `hosts/*/disks.nix` 里的 `create-home-snapshots-subvolume` 开机时补齐
-   （只在根分区是 btrfs 时生效），迁移/重装后不要删掉这个服务。
+7. 快照与子卷均在 `modules/system/btrfs.nix` 里，自动按挂载点判断：
+   只有存在 `/.snapshots` 才配根快照，只有 `/home` 是独立挂载才
+   配 home 快照并开机补 `/home/.snapshots` 子卷（`create-home-snapshots-subvolume`）。
+   想让新机器也有 home 快照，就在它的 `hardware-configuration.nix` 里
+   把 `/home` 做成独立子卷并挂载（参考 XPS9560）。
 8. `hosts/<主机名>/` 与 `home/<用户名>/` 的目录名必须和 `flake.nix` 主机表一致，
-   否则会报 `path does not exist`。
+   否则会报 `path does not exist`。反过来，**任何 `.nix` 文件里都不应该再硬编码主机名/用户名**。
 
 ## License
 

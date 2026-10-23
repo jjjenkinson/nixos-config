@@ -1,22 +1,30 @@
 # 默认应用关联:xdg-open、文件管理器双击、浏览器下载后「打开」都走这里。
 #
-# 只维护三个分类:
-#   video   → 视频文件
-#   music   → 音乐文件(Tauon)
-#   browser → 网页
+# 只维护四个分类:
+#   video     → 视频文件(mpv)
+#   audio     → 音频文件(mpv)
+#   browser   → 网页
+#   directory → 目录(文件管理器,niri 的 Mod+E 也走它)
 #
-# Tauon 使用 mp3/flac/ogg/opus/wav/wavpack 等解码库,不支持
-# m4a/aac/wma/ac3/ape 等格式;这些继续交给 mpv,避免双击后打不开。
+# 音频统一交给 mpv:它解码格式最全(mp3/flac/ogg/opus/wav/m4a/aac/wma/ape…),
+# 不会出现“双击某个格式打不开”的情况。
+#
+# 注:kopuz 虽然装在了系统里,但上游的 desktop 文件既没有声明 MIME 类型,
+# Exec 也不带 %f/%U 字段码——双击文件时它拿不到路径,所以不适合接文件关联。
 #
 # 注意:生成后的 ~/.config/mimeapps.list 是只读软链,
 # 在桌面环境里临时改默认程序会被下次 `nh home switch` 覆盖。
-{ lib, ... }:
+{ config, lib, ... }:
 
 let
   videoPlayer = "mpv.desktop";
-  musicPlayer = "tauonmb.desktop";
-  musicFallback = "mpv.desktop";
+  audioPlayer = "mpv.desktop";
   browser = "firefox.desktop";
+  # 注意:desktop ID 就是文件名去掉 .desktop。
+  # Dolphin 的文件叫 org.kde.dolphin.desktop,写成 dolphin.desktop 会指向不存在的程序,
+  # 于是 inode/directory 会回退到 kitty 自带的 kitty-open.desktop。
+  # 具体用哪个由 my.fileManager 决定(见下方 options),默认保持 Dolphin。
+  fileManager = config.my.fileManager;
 
   videoMimes = [
     "video/mp4"
@@ -42,8 +50,8 @@ let
     "application/x-extension-mp4"
   ];
 
-  # Tauon 实际能解码的常见音乐格式(见它的 buildInputs 与 desktop 文件)
-  musicMimes = [
+  # 所有音频格式(含播放列表),统一用 mpv 打开
+  audioMimes = [
     "audio/mpeg"
     "audio/mp3"
     "audio/x-mp3"
@@ -66,10 +74,7 @@ let
     "audio/x-scpls"
     "audio/x-pls"
     "audio/scpls"
-  ];
-
-  # Tauon 不支持的音频格式,回退到 mpv
-  otherAudioMimes = [
+    # 下面这些以前 Tauon 解不了、单独回退给 mpv;现在统一了
     "audio/mp4"
     "audio/m4a"
     "audio/x-m4a"
@@ -93,19 +98,34 @@ let
     "x-scheme-handler/https"
     "x-scheme-handler/chrome"
   ];
+
 in
 {
-  xdg.mimeApps = {
+  # 默认文件管理器(决定 inode/directory 走谁,也就是双击目录 /
+  # `xdg-open 目录` / niri 里绑定「打开文件管理器」的快捷键)。
+  # 纯 niri、不装 KDE 的机器上别继续用 Dolphin:那样这个 desktop ID
+  # 根本不存在,双击目录会什么都不发生。在 home/<用户>/default.nix 里覆盖成
+  #   "thunar.desktop"   轻量 GTK(xfce 的 Thunar,pkgs.thunar)
+  #   "nautilus.desktop" GNOME 的,依赖多一些(pkgs.nautilus)
+  # 并在装它的那一侧(hosts/*/default.nix 或 home.packages)把程序装上。
+  options.my.fileManager = lib.mkOption {
+    type = lib.types.str;
+    default = "org.kde.dolphin.desktop";
+    description = "inode/directory 的默认程序(desktop ID,即文件名去掉 .desktop)";
+  };
+
+  # 注:本文件有顶层 options,其余配置必须写在显式 config 下。
+  config.xdg.mimeApps = {
     enable = true;
 
     defaultApplications =
       lib.genAttrs videoMimes (_: videoPlayer)
-      // lib.genAttrs musicMimes (_: musicPlayer)
-      // lib.genAttrs otherAudioMimes (_: musicFallback)
+      // lib.genAttrs audioMimes (_: audioPlayer)
       // lib.genAttrs webMimes (_: browser)
       // {
         # LX Music 只声明了这个 scheme;它面向在线音乐,不接管本地音频文件。
         "x-scheme-handler/lxmusic" = "lx-music-desktop.desktop";
+        "inode/directory" = fileManager;
       };
   };
 }

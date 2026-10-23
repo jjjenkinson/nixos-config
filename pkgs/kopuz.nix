@@ -45,6 +45,9 @@
   # ── 运行时数据(不参与链接,但缺了界面会变丑/报 schema 错)──────
   adwaita-icon-theme,
   gsettings-desktop-schemas,
+
+  # ── 托盘(运行时 dlopen,不属于链接依赖)────────────────
+  libayatana-appindicator,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -84,6 +87,15 @@ stdenv.mkDerivation (finalAttrs: {
 
   dontConfigure = true;
   dontBuild = true;
+
+  # 托盘图标:上游用 libappindicator 在**运行时** dlopen
+  # libayatana-appindicator3.so.1(找不到再试 libappindicator3.so.1)。
+  # 这类库不会出现在 ELF 的 NEEDED 里,autoPatchelfHook 默认看不见,
+  # 只写进 buildInputs 是没用的;必须用 runtimeDependencies 告诉它
+  # 「这个路径也要进 RPATH」,dlopen 才能找到。
+  # 缺了它的表现:Kopuz 只打一行 “Failed to build tray icon”,
+  # “最小化到托盘”退化成关闭窗口 = 直接退出。
+  runtimeDependencies = [ libayatana-appindicator ];
 
   installPhase = ''
     runHook preInstall

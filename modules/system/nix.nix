@@ -13,10 +13,14 @@
     # 顺序原则:最近没出过问题的放前面。
     #   2026-10-20 移除 SJTU:TCP 连得上但服务端不回数据,单请求挂起过 117s。
     #   2026-10-21 NJU 也开始频繁 stalled,因此降到末位;哪家再卡就同样降级。
+    #   2026-10-23 重新加回 SJTU:实测 nix-cache-info 正常(HTTP 200,约 2.7s)。
+    #     但它历史上有过挂起,所以放末位;下面的 connect-timeout /
+    #     stalled-download-timeout 能保证它再不回数据时只浪费十几秒就跳下一个。
     substituters = [
       "https://mirrors.ustc.edu.cn/nix-channels/store"
       "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store"
       "https://mirror.nju.edu.cn/nix-channels/store"
+      "https://mirror.sjtu.edu.cn/nix-channels/store"
     ];
 
     # 国内镜像只是 cache.nixos.org 的镜像,签名不变,所以只需要这一把 key。

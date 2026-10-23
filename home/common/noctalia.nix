@@ -11,8 +11,8 @@
 { config, pkgs, ... }:
 
 let
-  # 必须写绝对路径:flake 求值时模块位于 /nix/store/…-source,用 ../.. 会指错地方
-  editableConfig = "${config.home.homeDirectory}/nixos-config/dotfiles/noctalia/00-nix.toml";
+  # 路径统一来自 my.repoDir(home/common/default.nix),换目录名时只改选项默认值。
+  editableConfig = "${config.my.repoDir}/dotfiles/noctalia/00-nix.toml";
 in
 {
   # 版本由 overlays/unstable.nix 决定(走 unstable)

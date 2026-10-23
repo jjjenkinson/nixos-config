@@ -25,9 +25,9 @@ let
   '';
 
   # 仓库里那份可编辑的配置(不在 store 里)。
-  # 必须写绝对路径:flake 求值时模块文件可能位于 /nix/store/…-source,
-  # 用 ../.. 会指到 store 副本而不是你的仓库。
-  editableConfig = "${config.home.homeDirectory}/nixos-config/dotfiles/niri/config.kdl";
+  # 路径统一来自 my.repoDir(home/common/default.nix),
+  # 不要在这里写死 ~/nixos-config —— 换目录名时只改选项默认值。
+  editableConfig = "${config.my.repoDir}/dotfiles/niri/config.kdl";
 in
 {
   # Nix 管理的基底

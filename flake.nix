@@ -10,8 +10,7 @@
 
   inputs = {
     # Stable 通道：指向 nixos-26.05 分支
-    nixpkgs.url = "git+https://mirror.nju.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
-    # nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
+    nixpkgs.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-26.05&shallow=1";
     # nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
 
     # unstable 源。flake 规范要求 input 写在这里,
@@ -19,8 +18,7 @@
     # 不使用 unstable 时只需注释掉下面的 overlay import,这个 input 留着不影响构建。
     #
     # Unstable 通道：指向 nixos-unstable 分支
-    nixpkgs-unstable.url = "git+https://mirror.nju.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
-    # nixpkgs-unstable.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
+    nixpkgs-unstable.url = "git+https://mirrors.tuna.tsinghua.edu.cn/git/nixpkgs.git?ref=nixos-unstable&shallow=1";
     # nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
@@ -68,10 +66,12 @@
       # 键 = 主机名(= hosts/<主机名>/ 目录名 = nixosConfigurations 的属性名)
       # user = 登录账号(= home/<用户名>/ 目录名)
       #
-      # 第二台机器现在是占位项 HHHH / XXXX,四处的名字必须一致:
-      #   hosts/HHHH/   home/XXXX/   本表   hosts/HHHH/default.nix 里的 my.user.name
+      # 两个名字各自只有「一处权威定义」:
+      #   主机名 → 本表的键,经 specialArgs.hostName 传给 hosts/<主机名>/
+      #   用户名 → 本表的 user,经 specialArgs.userName 同时传给系统侧和 home 侧
+      # 所以新增主机时,除了本表,不需要在任何 .nix 文件里再抄一遍用户名。
       #
-      # git 身份、默认编辑器等个人设置不在这里,而在 home/<user>/default.nix 里,
+      # git 身份、默认编辑器等个人设置不在这里,而在 home/<用户>/default.nix 里,
       # 这样 flake 只负责「哪台机器用哪个账号」。
       hosts = {
         XPS9560 = {
@@ -81,23 +81,38 @@
           user = "XXXX"; # ← 占位,换成真实用户名
         };
       };
+
+      # ── 所有主机共用的模块层 ──────────────────────────────────────────
+      # 放在这里统一注入,hosts/<主机名>/default.nix 就只需要关心
+      # 「这台机器的硬件和外设」,不用再抄一遍四行 ../../modules/...。
+      # 某台机器不想要其中某一层时,再在它的 default.nix 里用 disabledModules
+      # 或选项开关处理(例如桌面环境用 my.desktop.plasma.enable)。
+      commonModules = [
+        ./modules/system # 系统基础
+        ./modules/packages # 系统级软件包
+        ./modules/desktop # 桌面、字体、输入法
+        ./modules/users # 用户账号
+      ];
     in
     {
       # ── 系统配置 ──────────────────────────────────────────────────────
       # mapAttrs 把主机表展开成:
       #   nixosConfigurations.XPS9560 / nixosConfigurations.HHHH
-      # 每台机器一个 nixosSystem,但共享同一份 pkgsConfig / overlays。
+      # 每台机器一个 nixosSystem,但共享同一份 pkgsConfig / overlays / commonModules。
       nixosConfigurations = nixpkgs.lib.mapAttrs (
-        name: _:
+        name: h:
         nixpkgs.lib.nixosSystem {
           inherit system;
-          # hostName 传给 NixOS 模块,hosts/<name>/default.nix 用它设置 networking.hostName
           specialArgs = {
             inherit inputs;
             hostName = name;
+            userName = h.user;
           };
           modules = [
             ./hosts/${name}
+          ]
+          ++ commonModules
+          ++ [
             {
               nixpkgs.config = pkgsConfig;
               nixpkgs.overlays = overlays;

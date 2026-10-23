@@ -18,9 +18,14 @@
     settings.General.Experimental = true; # 显示设备电量等实验性功能
   };
 
-  # ── 网络 ─────────────────────────────────────────────────────────────
-  # NetworkManager:Wi-Fi / 有线 / VPN 都由桌面或 nmcli 管理。
+  # ── 网络 ────────────────────────────────────────────────────────────
+  # NetworkManager: Wi-Fi / 有线 / VPN 都由桌面或 nmcli 管理。
   networking.networkmanager.enable = true;
+
+  # ── 固件更新 ───────────────────────────────────────────────────────
+  # fwupd 只负责硬件固件(Wi-Fi 网卡、SSD、扩展厂 ROM 等),和桌面环境无关,
+  # 所以放共享层。以前它是由 plasma6 模块顺带开启的,不装 Plasma 的机器会缺。
+  services.fwupd.enable = true;
 
   # ── 文档 ─────────────────────────────────────────────────────────────
   # 不构建 NixOS 手册和 options 文档,省掉每次 nh os switch 的固定开销。

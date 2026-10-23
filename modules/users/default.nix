@@ -19,8 +19,9 @@ in
         "wheel"
         "networkmanager"
         "video"
+        "seat" # lemurs 启的 Wayland 会话需要(nixpkgs tests/lemurs 同样要求)
       ];
-      description = "附加组;wheel = 可以 sudo";
+      description = "附加组;wheel = 可以 sudo,seat = 用 seatd 拿显卡/输入设备";
     };
   };
 

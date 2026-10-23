@@ -1,7 +1,7 @@
 # Niri:可滚动的平铺式 Wayland 合成器(与 Plasma 共存,登录界面里选)。
 #
 # 分工:
-#   - 本文件(系统侧):安装 niri、注册会话到 SDDM、X11 兼容、noctalia 需要的系统服务
+#   - 本文件(系统侧):安装 niri、注册会话到登录管理器、X11 兼容、noctalia 需要的系统服务
 #   - home/common/niri.nix(用户侧):niri 的 config.kdl 与 noctalia 桌面外壳
 { pkgs, ... }:
 
@@ -35,7 +35,7 @@
   # noctalia 会用到 freedesktop 音效主题
   xdg.sounds.enable = true;
 
-  # 登录管理器仍然是 SDDM(见 modules/desktop/default.nix,与桌面环境无关):
+  # 登录管理器是 Plasma Login Manager(见 modules/desktop/default.nix,与桌面环境无关):
   # programs.niri 会把 niri.desktop 注册进 displayManager.sessionPackages,
   # 于是登录界面会多出一个 Niri 会话,和 Plasma 并列。
 }

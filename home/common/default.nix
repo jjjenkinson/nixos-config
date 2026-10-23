@@ -13,6 +13,20 @@
     description = "EDITOR / VISUAL / SUDO_EDITOR 使用的命令";
   };
 
+  # 本仓库在磁盘上的路径。dotfiles/(niri、noctalia 等可热重载的配置)
+  # 通过 out-of-store 软链挂到 ~/.config,靠的就是这个路径。
+  #
+  # 集中成一个选项的好处:仓库改名/换家目录时只改这里,
+  # 不用去每个模块里找硬编码路径。
+  # ⚠️ 系统侧的 programs.nh.flake 也有同样的假设,
+  #    在 modules/system/nix.nix 里(那里不能用 home 的选项)。
+  options.my.repoDir = lib.mkOption {
+    type = lib.types.str;
+    default = "${config.home.homeDirectory}/nixos-config";
+    defaultText = lib.literalMD "`$HOME/nixos-config`";
+    description = "本配置仓库的绝对路径";
+  };
+
   imports = [
     ./rime.nix
     ./shell.nix
