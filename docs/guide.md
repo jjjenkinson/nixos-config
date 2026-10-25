@@ -7,14 +7,14 @@
 
 ### 三层
 
-| 层       | 位置                     | 放什么                                     | 生效命令            |
-| -------- | ------------------------ | ------------------------------------------ | ------------------- |
-| 装配     | `flake.nix`、`overlays/` | inputs、主机表、共用 `pkgs`、unstable 名单 | `sudo nh os switch` |
-| 共享系统 | `modules/`               | 服务、软件包、桌面、字体、用户组           | `sudo nh os switch` |
-| 单机     | `hosts/<主机名>/`        | 分区、显卡、桌面开关、主机名               | `sudo nh os switch` |
-| 共享用户 | `home/common/`           | shell、编辑器、输入法、默认应用            | `nh home switch`    |
-| 单用户   | `home/<用户名>/`         | git 身份、默认编辑器、个人软件             | `nh home switch`    |
-| 手改配置 | `dotfiles/`              | niri / mango / noctalia 的纯文本配置       | 保存即热重载        |
+| 层       | 位置                     | 放什么                                             | 生效命令                                  |
+| -------- | ------------------------ | -------------------------------------------------- | ----------------------------------------- |
+| 装配     | `flake.nix`、`overlays/` | inputs、主机表、共用 `pkgs`、unstable 名单         | `sudo nh os switch`                       |
+| 共享系统 | `modules/`               | 服务、软件包、桌面、字体、用户组                   | `sudo nh os switch`                       |
+| 单机     | `hosts/<主机名>/`        | 分区、显卡、桌面开关、主机名                       | `sudo nh os switch`                       |
+| 共享用户 | `home/common/`           | shell、编辑器、输入法、默认应用                    | `nh home switch`                          |
+| 单用户   | `home/<用户名>/`         | git 身份、默认编辑器、个人软件                     | `nh home switch`                          |
+| 手改配置 | `dotfiles/`              | niri / mango / noctalia / helix / zed 的纯文本配置 | 保存即热重载（Helix 要 `:config-reload`） |
 
 `hosts/` 描述**机器**，`home/` 描述**人**，`modules/` 是共用零件。
 `flake.nix` 只做组装：用 `mapAttrs` 把 `hosts` 表展开成 N 个系统配置和 N 个用户配置。
@@ -77,7 +77,7 @@ flowchart TD
 | ----------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
 | `flake.nix`                               | inputs、`pkgsConfig`、overlays、主机表、两套输出 | 新增主机只改 `hosts` 表                              |
 | `overlays/unstable.nix`                   | 把名单里的包换成 unstable 版                     | 键名用 nixpkgs 顶层属性名                            |
-| `pkgs/kopuz.nix`                          | 重新打包上游 `.deb`                              | 不在 nixpkgs 的包都放这里                            |
+| `pkgs/*.nix`                              | 重新打包官方 `.deb` 或手写包定义                 | 不在 nixpkgs（或版本不合适）的包都放这里             |
 | `modules/system/default.nix`              | 汇总 import                                      | 新系统模块在这里加一行                               |
 | `modules/system/nix.nix`                  | nix 本体、镜像源、`programs.nh`                  | `nh` 的 flake 路径由 `my.user.name` 推出             |
 | `modules/system/base.nix`                 | 音频、蓝牙、网络、fwupd、journald、nix-ld        | WirePlumber 的 seat 监控关掉了                       |
@@ -101,24 +101,28 @@ flowchart TD
 
 用户侧与手改配置：
 
-| 文件                                        | 职责                                                           | 注意                                  |
-| ------------------------------------------- | -------------------------------------------------------------- | ------------------------------------- |
-| `home/common/default.nix`                   | 选项声明、`home.packages`、XDG 目录、编辑器变量                | 有顶层 options，配置写在 `config` 下  |
-| `home/common/shell.nix`                     | fish / bash / kitty / starship / eza / fzf / zoxide / 代理函数 | `LC_MESSAGES` 只能在交互式分支        |
-| `home/common/rime.nix`                      | Rime 覆盖 + 删 build                                           | 文件名必须是 `default.custom.yaml`    |
-| `home/common/yazi.nix`                      | yazi 设置、插件、fetcher                                       | git 标记靠 `prepend_fetchers`         |
-| `home/common/btop.nix`                      | btop 配置                                                      | `package = null`，用系统 side wrapper |
-| `home/common/niri.nix`                      | `base.kdl` 生成 + `config.kdl` 软链 + KEYS.md                  | 软链 → `dotfiles/`                    |
-| `home/common/mango.nix`                     | `config.conf` 软链 + 截图/布局脚本                             | 软链 → `dotfiles/`                    |
-| `home/common/noctalia.nix`                  | `00-nix.toml` 软链                                             | 不管 `settings.toml`                  |
-| `home/common/mime.nix`                      | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在               |
-| `home/common/git-ssh.nix`                   | git 身份、github.com SSH、sockets 目录                         | 密钥不进 store                        |
-| `home/common/{helix,neovim,zed-editor}.nix` | 编辑器                                                         | Zed 的 nixd 要两个 options expr       |
-| `home/<用户>/default.nix`                   | `my.git`、`my.editor`、个人软件                                | 不重复 common 已有配置                |
-| `dotfiles/niri/config.kdl`                  | niri 键位与布局                                                | 保存即热重载                          |
-| `dotfiles/mango/config.conf`                | mango 键位与外观                                               | 保存即热重载                          |
-| `dotfiles/noctalia/00-nix.toml`             | noctalia 固定项                                                | 会被 GUI 的 `settings.toml` 覆盖      |
-| `dotfiles/*/KEYS.md`                        | 快捷键速查                                                     | 手写，改键位后同步                    |
+| 文件                                     | 职责                                                           | 注意                                               |
+| ---------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| `home/common/default.nix`                | 选项声明、`home.packages`、XDG 目录、编辑器变量                | 有顶层 options，配置写在 `config` 下               |
+| `home/common/shell.nix`                  | fish / bash / kitty / starship / eza / fzf / zoxide / 代理函数 | `LC_MESSAGES` 只能在交互式分支                     |
+| `home/common/rime.nix`                   | Rime 覆盖 + 删 build                                           | 文件名必须是 `default.custom.yaml`                 |
+| `home/common/yazi.nix`                   | yazi 设置、插件、fetcher                                       | git 标记靠 `prepend_fetchers`                      |
+| `home/common/btop.nix`                   | btop 配置                                                      | `package = null`，用系统 side wrapper              |
+| `home/common/niri.nix`                   | `base.kdl` 生成 + `config.kdl` 软链 + KEYS.md                  | 软链 → `dotfiles/`                                 |
+| `home/common/mango.nix`                  | `config.conf` 软链 + 截图/布局脚本                             | 软链 → `dotfiles/`                                 |
+| `home/common/noctalia.nix`               | `00-nix.toml` 软链                                             | 不管 `settings.toml`                               |
+| `home/common/mime.nix`                   | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在                            |
+| `home/common/git-ssh.nix`                | git 身份、github.com SSH、sockets 目录                         | 密钥不进 store                                     |
+| `home/common/helix.nix`                  | 只建软链（内容在 `dotfiles/helix/`）                           | 留空 `settings` / `languages`，否则顶掉软链        |
+| `home/common/zed-editor.nix`             | 稳定项（扩展 / 终端 / `languages` / `lsp`）+ 建软链            | 每次 switch 把静态值合并进仓库文件                 |
+| `home/common/neovim.nix`                 | Neovim                                                         | 仍是 Nix 生成                                      |
+| `home/<用户>/default.nix`                | `my.git`、`my.editor`、个人软件                                | 不重复 common 已有配置                             |
+| `dotfiles/niri/config.kdl`               | niri 键位与布局                                                | 保存即热重载                                       |
+| `dotfiles/mango/config.conf`             | mango 键位与外观                                               | 保存即热重载                                       |
+| `dotfiles/noctalia/00-nix.toml`          | noctalia 固定项                                                | 会被 GUI 的 `settings.toml` 覆盖                   |
+| `dotfiles/helix/{config,languages}.toml` | Helix 设置与 LSP                                               | 保存后 `:config-reload`                            |
+| `dotfiles/zed/settings.json`             | Zed 常改项（主题 / 字体 / AI）                                 | `~/.config/zed/settings.json` 软链到它；保存即生效 |
+| `dotfiles/*/KEYS.md`                     | 快捷键速查                                                     | 手写，改键位后同步                                 |
 
 ### 一次 rebuild 做了什么
 
@@ -181,7 +185,7 @@ modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enab
 ```text
 ├── flake.nix                  # inputs、主机表、两套输出
 ├── overlays/unstable.nix      # 哪些包走 unstable（唯一名单）
-├── pkgs/kopuz.nix             # 不在 nixpkgs 的包
+├── pkgs/                      # 不在 nixpkgs 的包
 ├── hosts/<主机名>/            # hardware-configuration / disks / gpu
 ├── modules/
 │   ├── system/                # nix、base、boot、btrfs、locale
@@ -191,7 +195,7 @@ modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enab
 ├── home/
 │   ├── common/                # 所有用户共用
 │   └── <用户名>/              # 个人设置
-├── dotfiles/                  # 手改 + 热重载（niri / mango / noctalia）
+├── dotfiles/                  # 手改 + 热重载（niri / mango / noctalia / helix / zed）
 ├── share/wallpapers/          # Limine 壁纸
 ├── .agents/skills/            # 给 Zed Agent 的项目内技能
 └── docs/                      # 本文件 + 更改记录
@@ -202,11 +206,24 @@ modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enab
 
 ### 两类配置
 
-|          | Nix 生成                                | dotfiles 软链                              |
-| -------- | --------------------------------------- | ------------------------------------------ |
-| 例子     | `programs.fish`、`mimeApps`、`base.kdl` | `config.kdl`、`config.conf`、`00-nix.toml` |
-| 改完生效 | `nh home switch`                        | 保存即热重载                               |
-| 适合     | 结构化、很少变、要类型检查              | 键位、配色、反复试                         |
+|          | Nix 生成                                | dotfiles 软链                                              |
+| -------- | --------------------------------------- | ---------------------------------------------------------- |
+| 例子     | `programs.fish`、`mimeApps`、`base.kdl` | `config.kdl`、`config.conf`、`00-nix.toml`、`helix/*.toml` |
+| 改完生效 | `nh home switch`                        | 保存即热重载（Helix 要 `:config-reload`）                  |
+| 适合     | 结构化、很少变、要类型检查              | 键位、配色、反复试                                         |
+
+Zed 是例外，用第三种模式（`mutableUserSettings` + 软链）：
+
+- Nix 侧写稳定项（扩展、`terminal`、`languages`、`lsp.nixd`，其中 nixd 的 expr
+  要按主机名/用户名插值）
+- 常改项（主题、字体、AI）在 `dotfiles/zed/settings.json`，
+  `~/.config/zed/settings.json` 软链到它，所以 GUI 改动直接进 git
+- 每次 `nh home switch` 用 jq 把两边递归合并（对象递归；标量、数组以 Nix 为准）
+  后覆盖写回仓库文件，所以该文件里的注释会被抹掉，注释一律写在
+  `home/common/zed-editor.nix`
+- 反过来：从 Nix 删掉某个键，仓库文件里原来那份仍会保留，需要手动删
+- 软链由 activation 自愈：若被某个程序原子保存替换成普通文件，
+  先把内容写回仓库，再重建软链（用硬链会因为 inode 被换而静默分叉）
 
 软链用 `config.lib.file.mkOutOfStoreSymlink "${config.my.repoDir}/dotfiles/…"`，
 指向仓库里的真实文件。因此仓库必须叫 `~/nixos-config`，否则要同时改
@@ -222,12 +239,18 @@ modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enab
 
 ## 日常用法
 
-| 改了什么                                             | 命令                            | sudo |
-| ---------------------------------------------------- | ------------------------------- | ---- |
-| `home/**`                                            | `nh home switch`                | 否   |
-| `hosts/**`、`modules/**`、`flake.nix`、`overlays/**` | `sudo nh os switch`             | 是   |
-| `dotfiles/**`                                        | 不用命令，保存即生效            | —    |
-| 只想验证能否构建                                     | `nh os build` / `nh home build` | 否   |
+| 改了什么                                             | 命令                                   | sudo |
+| ---------------------------------------------------- | -------------------------------------- | ---- |
+| `home/**`                                            | `nh home switch`                       | 否   |
+| `hosts/**`、`modules/**`、`flake.nix`、`overlays/**` | `sudo nh os switch`                    | 是   |
+| `dotfiles/**`                                        | 不用命令，保存即生效                   | —    |
+| `~/.config/zed/settings.json`                        | 不用命令，保存即生效（改的是仓库文件） | —    |
+| 只想验证能否构建                                     | `nh os build` / `nh home build`        | 否   |
+
+> Helix 不监视自己的配置文件：改 `dotfiles/helix/*.toml` 后要在 Helix 里执行
+> `:config-reload`（或重启 `hx`）。其余 dotfiles（niri / mango / noctalia）保存即生效。
+> Zed 的 `~/.config/zed/settings.json` 由 Zed 自己热重载；Nix 侧管的键（`languages` /
+> `lsp` / `terminal` / 扩展）要 `nh home switch` 后才会写进去。
 
 ```bash
 nh os switch          # 切换系统代
@@ -362,6 +385,7 @@ sudo /run/current-system/bin/switch-to-configuration boot
 | Rime 配置不生效                      | 需删 `~/.local/share/fcitx5/rime/build/default.yaml`（已自动） |
 | noctalia 设置没变                    | `~/.local/state/noctalia/settings.toml` 优先级更高             |
 | 改了 dotfiles 却没反应               | 确认软链还在：`readlink ~/.config/niri/config.kdl`             |
+| Helix 改了配置没变化                 | Helix 不监视 `config.toml`，要在里面执行 `:config-reload`      |
 | 仓库多出 `result`                    | `nix build` 的软链，已 gitignore                               |
 
 ## 桌面
@@ -397,7 +421,7 @@ flowchart TD
   X11 程序靠 `xwayland-satellite`。默认不再常驻最上方空工作区。
 - **Mango**：配置在 `dotfiles/mango/config.conf`，保存即重载。修饰键统一用 Super，
   旧 Alt 绑定注释掉（Alt+字母会抢应用菜单）。需要
-  `mango-xdg-autostart` 这个 oneshot 才能拉起 fcitx5 / FlClash 等自启动项。
+  `mango-xdg-autostart` 这个 oneshot 才能拉起 fcitx5 等自启动项。
 - **Noctalia**：`~/.config/noctalia/*.toml` → 再被
   `~/.local/state/noctalia/settings.toml` 覆盖。前者是软链、可手改；后者归 GUI。
 - **输入法**：fcitx5 + Rime 雾凇。覆盖写在 `default.custom.yaml`：
@@ -493,6 +517,9 @@ btop 能看两张卡：系统侧 wrapper 给 `CAP_PERFMON`（核显），`cudaSu
 - **装包位置**：常改的 → `home.packages`；大件 GUI → `modules/packages/apps.nix`；
   基础设施/工具链 → `modules/packages/default.nix`；本机专用 → `hosts/*/default.nix`。
   不在 nixpkgs 的放 `pkgs/`。
+- **Rust**：用 nixpkgs 的稳定工具链（`rustc` / `cargo` / `clippy` / `rustfmt` /
+  `rust-analyzer`，当前 1.95.0），都装在系统侧。`cargo new/run/clippy/fmt` 开箱可用，
+  `gcc` 提供默认链接器 `cc`。不装 rustup，避免两套工具链互相遮蔽。
 - **Git/SSH**：身份来自 `my.git.*`（每个用户目录），密钥不由 Nix 管理。
   `~/.ssh/config` 只配 github.com，`IdentitiesOnly` + 连接复用。
   远程地址用 **GitHub 登录名**：`git@github.com:<登录名>/nixos-config.git`。

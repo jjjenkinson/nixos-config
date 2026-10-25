@@ -1,0 +1,27 @@
+# Helix 主配置。
+#
+# 本文件通过 out-of-store 软链挂在 ~/.config/helix/config.toml,
+# 所以改完保存后不需要 `nh home switch`。
+# ⚠️ 与 niri 不同,Helix 不会自己监视 config.toml:
+#    在 Helix 里执行 :config-reload(或重启 hx)才会读到新内容。
+
+# 内置主题:catppuccin_{latte,frappe,macchiato,mocha}、autumn_night 等
+theme = "catppuccin_mocha"
+
+[editor]
+bufferline = "multiple"
+default-yank-register = "+" # 与系统剪贴板共用寄存器
+line-number = "relative"
+scrolloff = 18
+
+[editor.cursor-shape]
+insert = "bar"
+normal = "block"
+select = "underline"
+
+[editor.lsp]
+display-messages = true
+
+[editor.soft-wrap]
+enable = true
+

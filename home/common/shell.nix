@@ -70,9 +70,26 @@
   programs.starship = {
     enable = true;
     settings = {
-      format = "$os$directory$git_branch$git_status$nix_shell$character";
+      # 三行:
+      #   1. 信息行(os / 目录 / git / nix shell)
+      #   2. 整行分隔线:fill 用 - 把当前行剩余宽度填满,随窗口宽度自适应
+      #   3. 输入行(character)
+      format = "$fill$line_break$os$directory$git_branch$git_status$nix_shell$line_break$character";
       os.disabled = false;
       os.symbols.NixOS = "  ";
+
+      # fill 必须单独占一行:它只填「当前行剩下的宽度」,
+      # 后面跟其他模块会被挤到行尾之外。
+      # 注意 $fill 后面只能接 $ 开头的模块名;接普通文字要写成 ${line_break} 或加分隔符,
+      # 否则 starship 会把 "fillfoo" 当成一个模块名。
+      #
+      # 默认样式是 bold black,在深色背景(如 Catppuccin Mocha)上几乎看不见;
+      # 换成 overlay0 灰。符号用制表符横线 ─ 而不是 -:
+      # 等宽字体里的 - 两侧带留白,铺满会变成一串短横;─ 能连成一条整线。
+      fill = {
+        symbol = "─";
+        style = "fg:#6c7086";
+      };
     };
   };
 

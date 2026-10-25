@@ -38,7 +38,7 @@
     ./mango.nix # mango 的 config.conf(软链到 dotfiles,热重载)
     ./noctalia.nix
     ./git-ssh.nix
-    ./btop.nix
+    # ./btop.nix
     ./mime.nix # 默认应用设置
   ];
 
@@ -59,11 +59,9 @@
     '';
 
     home.packages = with pkgs; [
-      # ── 用户级应用 ────────────────────────────────
-      # 注意:firefox / chrome / mpv / vlc / libreoffice / sioyek 在
-      # modules/packages/default.nix(系统侧)。它们很少变,放系统侧可以让
+      # 注意:firefox / chrome / mpv / vlc / libreoffice / sioyek / flclash 在
+      # modules/packages/(系统侧)。它们很少变,放系统侧可以让
       # home 闭包小一点;增删/升级需要 `sudo nh os switch`。
-      flclash # 代理客户端(基于 clash meta)
 
       # ── CLI 工具 ──────────────────────────────────
       bat # cat 替代
@@ -74,10 +72,12 @@
       # btop 不在 home 安装:系统侧 security.wrappers.btop 提供带 CAP_PERFMON 的版本
       # (核显/独显都能看),配置在 home/common/btop.nix。
       htop
+      btop
       fastfetch # 系统信息
       inxi # 硬件/系统详情
 
       ffmpeg
+      ouch # 现代压缩解压缩工具
 
       # 注意:gnumake、nixd/nixfmt、rust-analyzer/rustfmt、pyright/ruff、
       # typst/tinymist 已移到 modules/packages/default.nix(系统侧)。

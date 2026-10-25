@@ -48,12 +48,23 @@ in
     gnumake
     nixd # Nix LSP(Zed / Helix 用)
     nixfmt # Nix 格式化
-    rust-analyzer
-    rustfmt
     pyright
     ruff
     typst # 排版编译器
     tinymist # Typst 的 LSP + 实时预览 + 格式化
+
+    # ── Rust ───────────────────────────────────────────────
+    # 走 nixpkgs 的稳定工具链(当前 1.95.0),不装 rustup:
+    #   - 声明式、可回滚,版本与下面的 rust-analyzer 配套
+    #   - 走二进制缓存,不用从 static.rust-lang.org 下载 1–2 GB
+    #   - 大件放系统侧,`nh home switch` 不受影响
+    # 需要 nightly / 交叉目标时再单独换 rustup(两者不要同时装)。
+    rustc
+    cargo
+    clippy # `cargo clippy` 实际调用它
+    rustfmt # `cargo fmt`
+    rust-analyzer # 编辑器 LSP
+    gcc # 提供 cc/ar/ld;cargo 默认链接器就是 cc
   ];
 
   # btop 的核显监控读 i915 PMU,普通用户需要 CAP_PERFMON。

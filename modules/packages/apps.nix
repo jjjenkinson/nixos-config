@@ -23,9 +23,18 @@ let
   # Kopuz 不在 nixpkgs 里(stable / unstable 都没有),包定义见 pkgs/kopuz.nix:
   # 直接拿上游 GitHub release 的 .deb 重新打包,版本跟上游一致。
   kopuz = pkgs.callPackage ../../pkgs/kopuz.nix { };
+
+  # FlClash:unstable 里这个包已被移除,stable 只有 0.8.92,
+  # 所以要更新版本只能自己重打包官方 .deb,见 pkgs/flclash.nix。
+  # 注意:这里绑定的 flclash 会遮蔽 `with pkgs` 里的同名属性。
+  flclash = pkgs.callPackage ../../pkgs/flclash.nix { };
 in
 {
   environment.systemPackages = with pkgs; [
+    # ── 网络 ───────────────────────────────────────────────
+    # 代理客户端(本地重打包 0.9.2)。配置和订阅都在用户目录里,
+    # 装系统侧是为了少占 home 闭包,与其它大件 GUI 一致。
+    flclash
     # ── 浏览器 ─────────────────────────────────────────────
     firefox
     google-chrome # 想要 unstable 版:在 overlays/unstable.nix 的 names 里放开这一项

@@ -1,20 +1,57 @@
+# Zed。版本由 overlays/unstable.nix 决定(不写 package 即 pkgs.zed-editor)。
+#
+# 设置分两部分：
+#   1. 本文件的 userSettings：很少变、且要按机器/用户动态生成的部分
+#      （语言、LSP、终端、扩展）。每次 `nh home switch` 由 HM 合并进 settings.json。
+#   2. dotfiles/zed/settings.json：主题、字体、AI 等常改项。
+#      ~/.config/zed/settings.json 是指向它的软链，所以：
+#      - Zed GUI 改设置 = 直接改仓库文件（git 可见）
+#      - HM 合并后的结果也写回仓库文件
+#
+# 为什么用软链而不是硬链：git checkout/restore 会改写仓库里的目标文件，
+# 软链指向路径所以不会断；硬链共享 inode，目标一旦被替换就静默分叉。
+#
+# 合并规则（mutableUserSettings = true，每次 switch 执行）：
+#   读 settings.json → 与 Nix 静态值 jq 递归合并（对象递归合并；标量、数组以 Nix 为准）
+#   → 用严格 JSON 覆盖写回。由此得到两个必须知道的结论：
+#   - settings.json 里的注释每次 switch 都会被抹掉 → 注释写在本文件里
+#   - 从 Nix 删掉某个键，settings.json 里原来那份仍会保留（需要手动删）
 {
   config,
   hostName,
+  lib,
   pkgs,
   ...
 }:
 
 let
-  # 仓库的绝对路径。
-  # 必须写绝对路径:flake 求值时模块位于 /nix/store/…-source,
-  # 用相对路径会指到 store 里的只读副本,nixd 就会去分析那份快照。
-  repo = "${config.home.homeDirectory}/nixos-config";
+  # 仓库里那份可编辑、可提交的 Zed 设置
+  settingsFile = "${config.my.repoDir}/dotfiles/zed/settings.json";
 in
 {
+  # 保证 ~/.config/zed/settings.json 始终是指向仓库的软链。
+  #
+  # 为什么需要自愈：如果某个程序用“临时文件 + rename”原子保存，
+  # 软链会被换成普通文件。这里先把普通文件的内容写回仓库（不丢数据），
+  # 再重建软链。
+  # 必须赶在 zedSettingsActivation 之前，让 HM 的合并写进仓库文件。
+  home.activation.zedSettingsLink = lib.hm.dag.entryBefore [ "zedSettingsActivation" ] ''
+    link=${lib.escapeShellArg "${config.xdg.configHome}/zed/settings.json"}
+    mkdir -p ${lib.escapeShellArg "${config.xdg.configHome}/zed"}
+    if [ ! -L "$link" ]; then
+      if [ -f "$link" ]; then cp -f "$link" ${lib.escapeShellArg settingsFile}; fi
+      rm -f "$link"
+      ln -sfn ${lib.escapeShellArg settingsFile} "$link"
+    fi
+  '';
+
   programs.zed-editor = {
     enable = true;
-    # 不写 package:默认就是 pkgs.zed-editor,版本由 overlays/unstable.nix 决定。
+
+    # 显式写出来：允许 Zed 改写 settings.json，HM 只往里合并，不做软链。
+    mutableUserSettings = true;
+
+    # 写成 auto_install_extensions 进 settings.json，之后由 Zed 自己下载。
     extensions = [
       "nix"
       "catppuccin" # 主题
@@ -23,38 +60,13 @@ in
     ];
 
     userSettings = {
-      # ── 外观 ──────────────────────────────────────────────────────
-      theme = {
-        mode = "dark";
-        light = "Catppuccin Latte";
-        dark = "Catppuccin Mocha";
-      };
-      buffer_font_family = "Maple Mono NF CN";
-      buffer_font_size = 15;
-      agent_buffer_font_size = 15;
-      helix_mode = true;
-
-      # ── 行为 ──────────────────────────────────────────────────────
       format_on_save = "on";
-      cli_default_open_behavior = "new_window"; # CLI 启动 / 双击
-      default_open_behavior = "new_window"; # 外部打开请求
 
-      terminal.shell.program = "${pkgs.fish}/bin/fish"; # 写 store 路径,避免 PATH 问题
-
-      # nixd 首次求值 nixpkgs / options 可能要几秒;
-      # 设上限,避免整张补全菜单一直等它。
-      completions = {
-        lsp = true;
-        lsp_fetch_timeout_ms = 3000;
-        # 想把当前文件里的单词也混进补全时可打开:
-        # words = "enabled";
-        # words_min_length = 2;
-      };
-
-      # Zed 自带的 AI 编辑预测(Zeta)。不登录会刷 403,不用就改成 "none"。
-      "edit_prediction_provider" = "zed";
+      # 写 store 路径，不依赖终端 PATH。
+      terminal.shell.program = "${pkgs.fish}/bin/fish";
 
       # ── 各语言 ────────────────────────────────────────────────────
+      # 结构性强、很少改，放 Nix 侧由类型检查兜底。
       languages = {
         "Nix" = {
           language_servers = [
@@ -79,61 +91,35 @@ in
             "ruff"
           ];
           format_on_save = "on";
+          # ⚠️ 点号必须写在同一个属性名里（加引号），
+          # 否则 Nix 会解析成嵌套对象，Zed 会报
+          # "data did not match any variant of untagged enum FormatterList"。
+          formatter = [
+            {
+              code_actions = {
+                "source.fixAll.ruff" = true;
+                "source.organizeImports.ruff" = true;
+              };
+            }
+            {
+              language_server.name = "ruff";
+            }
+          ];
           tab_size = 4;
           preferred_line_length = 100;
         };
       };
 
       # ── nixd ──────────────────────────────────────────────────────
-      # nixpkgs → 包补全 / inlay hint
-      # options.nixos → 系统侧选项
-      # options.home-manager → HM 是独立模式,不在 nixosConfigurations 里,要单独给
+      # 这些 expr 必须随主机名/用户名变化，所以放在 Nix 侧（静态文件做不到）。
+      #   nixpkgs          → 包补全 / inlay hint
+      #   options.nixos    → 系统侧选项
+      #   options.home-manager → HM 是独立模式，不在 nixosConfigurations 里
       lsp.nixd.settings = {
-        nixpkgs.expr = "import (builtins.getFlake \"${repo}\").inputs.nixpkgs { }";
-        options.nixos.expr = "(builtins.getFlake \"${repo}\").nixosConfigurations.${hostName}.options";
-        options.home-manager.expr = "(builtins.getFlake \"${repo}\").homeConfigurations.\"${config.home.username}@${hostName}\".options";
+        nixpkgs.expr = "import (builtins.getFlake \"${config.my.repoDir}\").inputs.nixpkgs { }";
+        options.nixos.expr = "(builtins.getFlake \"${config.my.repoDir}\").nixosConfigurations.${hostName}.options";
+        options.home-manager.expr = "(builtins.getFlake \"${config.my.repoDir}\").homeConfigurations.\"${config.home.username}@${hostName}\".options";
         diagnostic.suppress = [ "sema-extra-with" ]; # 抑制 with 表达式的告警
-      };
-
-      # ── AI ────────────────────────────────────────────────────────
-      # 不配置 context_servers = MCP 工具定义不会进入上下文。
-      agent = {
-        default_model = {
-          provider = "openai_compatible"; # 与下面 language_models 的键对应
-          model = "glm-5.3-flash";
-        };
-        auto_compact = {
-          enable = true;
-          threshold = "60%";
-        };
-        project_context = "none"; # 不自动附带项目结构摘要
-        include_active_editor_context = false; # 不自动附带当前文件内容
-        single_file_review = true; # 评审只带单文件 diff
-      };
-
-      language_models.openai_compatible."ZhipuAI" = {
-        # Z.ai / GLM Coding Plan 用:
-        #   api_url = "https://api.z.ai/api/coding/paas/v4";
-        # 国内智谱开放平台的普通 API Key 用下面这个:
-        api_url = "https://open.bigmodel.cn/api/paas/v4";
-
-        available_models = [
-          {
-            name = "glm-5.3-flash"; # 必须与服务商模型 ID 完全一致
-            display_name = "GLM-5.3-Flash";
-            max_tokens = 1048576; # 按官方文档的上下文长度调整
-            max_output_tokens = 32000;
-            stream = true;
-            reasoning_effort = "high"; # low / high / max
-            capabilities = {
-              prompt_cache_key = true;
-              tools = true; # Agent 编辑文件、执行命令必需
-              images = true;
-              parallel_tool_calls = true;
-              clear_thinking = false;
-            };
-          }
-        ];
       };
     };
   };

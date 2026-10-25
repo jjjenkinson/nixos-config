@@ -33,8 +33,29 @@
 - 合并 `hosts/XPS9560/external-disks.nix` 到 `disks.nix`：两者都是「本机磁盘」，
   合并后少一个 import；额外分区用 `//` 并进 `fileSystems`（同一 attrset 不能写两次）
 
+### 用户环境
+
+- starship 提示符改为三行：信息行、整行 `─` 分隔线（`$fill`，随窗口宽度自适应；
+  颜色用 overlay0 而不是默认的 near-black）、输入行
+
+### 编辑器
+
+- Helix 的配置移入 `dotfiles/helix/` 并软链到 `~/.config/helix/`：改完保存，
+  在 Helix 里 `:config-reload` 即可，不需要 `nh home switch`
+- Zed 改为「两层 + 软链」：`home/common/zed-editor.nix` 只放稳定且有结构的部分
+  （扩展、终端、`languages`、`lsp.nixd`），每次 switch 用 jq 递归合并；
+  主题、字体、AI 等常改项在 `dotfiles/zed/settings.json`，
+  `~/.config/zed/settings.json` 软链到它 —— GUI 改动会直接进 git。
+  另加 activation 自愈：软链被换成普通文件时先写回仓库再重建
+- 顺带修正旧配置里的无效键：`programs`、`helix_mod`、`clear_thinking`、
+  重复的 `project_context`，以及会报 `FormatterList` 解析错的嵌套 `code_actions`
+- Helix `languages.toml` 的格式化命令改用 PATH 里的 `nixfmt`，不再写死 store 路径
+
 ### 软件包
 
+- 新增 Rust 工具链到系统侧：`rustc` / `cargo` / `clippy` / `gcc`（链接器 `cc`）；
+  与已有的 `rustfmt` / `rust-analyzer` 放在一起。`cargo new/run/clippy/fmt` 已实测可用
+- 新增一个本地重打包的 `.deb` 软件，并放到系统侧（定义见 `pkgs/`）
 - `modules/packages/` 拆成两个文件：`default.nix`（系统基础设施 + 工具链 + btop wrapper）
   和 `apps.nix`（大件 GUI 应用），用注释说明「放系统侧是为省 home 切换时间」
 - 新增 `efibootmgr`（双系统排查）、`microsoft-edge`

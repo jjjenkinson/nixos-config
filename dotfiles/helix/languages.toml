@@ -1,0 +1,34 @@
+# Helix 的语言服务器与格式化配置。
+#
+# 同样软链到 ~/.config/helix/languages.toml,改完 :config-reload 生效。
+#
+# 注意:命令一律写裸名字(从 PATH 找)。
+# 不要写 /nix/store/… 绝对路径 —— 那个 hash 会随 nixpkgs 升级消失,
+# 而本文件是静态文本,Nix 无法替你更新它。
+
+[[language]]
+name = "nix"
+auto-format = true
+language-servers = ["nixd"]
+
+[language.formatter]
+command = "nixfmt"
+
+[[language]]
+name = "rust"
+auto-format = true
+language-servers = ["rust-analyzer"]
+
+[[language]]
+name = "typst"
+auto-format = true
+language-servers = ["tinymist"]
+
+[language-server.nixd]
+command = "nixd"
+
+[language-server.rust-analyzer]
+command = "rust-analyzer"
+
+[language-server.tinymist]
+command = "tinymist"
