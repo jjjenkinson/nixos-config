@@ -12,13 +12,6 @@
   ...
 }:
 {
-  config,
-  lib,
-  pkgs,
-  ...
-}:
-
-{
   options.my.desktop.mango.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;

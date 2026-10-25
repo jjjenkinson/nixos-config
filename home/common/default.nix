@@ -84,6 +84,7 @@
       # 它们很少变,这样 home 闭包更小(实测 884 → 831 个 store 路径);
       # 对冷启动时间的改善很小,主要是精简 profile。
       # 增删/升级它们需要 `sudo nh os switch`。
+      microsoft-edge
     ];
 
     # 默认编辑器(sudo -e 也会用),具体命令由 my.editor 决定。

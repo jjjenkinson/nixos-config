@@ -34,4 +34,7 @@ xdg.configFile."niri/config.kdl".source =
 | 路径                   | 被谁读取                                        | 生效方式                                                                                                         |
 | ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `niri/config.kdl`      | niri（经 `~/.config/niri/config.kdl`）          | 保存即热重载；异常时 `niri msg action load-config-file`                                                          |
+| `mango/config.conf`    | mango（经 `~/.config/mango/config.conf`）       | 保存即热重载（`auto_reload_config=1`）                                                                           |
 | `noctalia/00-nix.toml` | Noctalia（经 `~/.config/noctalia/00-nix.toml`） | 保存即热重载（配置目录被监听）；会被 `~/.local/state/noctalia/settings.toml` 覆盖同名键；noctalia 不会重写该目录 |
+| `niri/KEYS.md`         | kitty（`Mod+/` 打开）                           | 手写速查表，改键位后需手动同步                                                                                   |
+| `mango/KEYS.md`        | kitty（`Super+Shift+/` 打开）                   | 同上                                                                                                             |

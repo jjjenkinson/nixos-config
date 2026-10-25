@@ -53,6 +53,8 @@
         (import ./overlays/unstable.nix {
           inherit (inputs) nixpkgs nixpkgs-unstable;
           inherit system;
+          # unstable 实例也用同一份 config,否则 unfree 包(wechat)求值时报错
+          config = pkgsConfig;
         })
       ];
 

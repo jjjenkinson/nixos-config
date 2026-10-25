@@ -1,7 +1,9 @@
 # nix build 产生的软链
-result
-result-*
+result*
 
 # 编辑器/工具留下的临时备份
-*.bck
+*.bak
 *~
+
+.agents/
+

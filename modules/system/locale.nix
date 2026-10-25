@@ -27,8 +27,9 @@
   # 但 shell 要能切到 en_US,glibc 里必须先有这个 locale:
   i18n.extraLocales = [ "en_US.UTF-8/UTF-8" ];
 
-  # 硬件时钟按本地时间(双系统与 Windows 共存时才需要)。
-  # 本机没有 Windows,理应改成 false(让 RTC 存 UTC),改后执行一次:
+  # 硬件时钟按本地时间。本机与 Windows 双系统共存,Windows 默认把 RTC 当本地时间,
+  # 所以这里必须保持 true,否则两边会差 8 小时。
+  # 以后不再装 Windows 时可改成 false(让 RTC 存 UTC),改后执行一次:
   #   sudo timedatectl set-local-rtc 0
   time.hardwareClockInLocalTime = true;
 

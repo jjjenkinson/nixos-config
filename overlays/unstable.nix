@@ -13,25 +13,30 @@
   nixpkgs, # stable 源,这里只取 lib
   nixpkgs-unstable, # unstable 源
   system, # 系统架构,如 x86_64-linux
+  config, # 与主 pkgs 共用的 nixpkgs config(含 allowUnfree)
 }:
 
 let
   lib = nixpkgs.lib;
 
-  # unstable 实例:直接用 flake 已求值好的 legacyPackages,
-  # 不再 import 一遍 nixpkgs(那会把 lib / stdenv / module system 整套重新实例化)。
+  # unstable 实例。
   #
-  # ⚠️ legacyPackages 用的是 nixpkgs 默认 config,没有 allowUnfree。
-  #   目前名单里的包都是自由软件;以后如果把 google-chrome 这类 unfree 包加进来,
-  #   就必须改回 `import nixpkgs-unstable { inherit system config; }`
-  #   (报错会直接写 unfree license,很好认)。
-  pkgsUnstable = nixpkgs-unstable.legacyPackages.${system};
+  # 为什么不用 legacyPackages:它用的是 nixpkgs 默认 config(allowUnfree = false),
+  # 而下面的 wechat 是 unfree 包,会直接报“unfree license”。
+  # 所以这里 import 一遍,并把主 pkgs 的 config 原样传进去(flake.nix 里的 pkgsConfig)。
+  pkgsUnstable = import nixpkgs-unstable {
+    inherit system config;
+  };
 
   # ← 唯一需要维护的地方:nixpkgs 里的顶层属性名。
   names = [
     "zed-editor"
-    "helix"
+    # "helix"  # unstable版本与stable差不多
     "noctalia" # Niri 的桌面外壳,上游迭代很快
+
+    # 微信 Linux 原生版(腾讯官方 AppImage)。unfree,所以上面必须传 config。
+    # stable 4.1.1.4 → unstable 4.1.13.26,差了很多个小版本。
+    "wechat"
 
     # Wayland 合成器。注意两个通道的命名差异:
     #   属性名(overlay 的键):两个通道都叫 mangowc → 必须写 "mangowc"

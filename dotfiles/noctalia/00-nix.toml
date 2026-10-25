@@ -2,7 +2,7 @@
 # Noctalia 基础配置(直接在仓库里编辑,保存即生效)
 #
 # 位置链路:
-#   ~/.config/noctalia/00-nix.toml  →  本文件(软链,见 home/jiro/noctalia.nix)
+#   ~/.config/noctalia/00-nix.toml  →  本文件(软链,见 home/common/noctalia.nix)
 #
 # 配置栈(官方文档 + 5.3.0 实测):
 #   1. 内置默认值

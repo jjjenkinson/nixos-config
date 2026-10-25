@@ -61,11 +61,13 @@ binds {
     Mod+Ctrl+P { screenshot-screen; }
     Mod+Alt+P { screenshot-window; }
 
+    // 编辑器zed
+    Mod+F10 hotkey-overlay-title="Open the zed-editor" { spawn "zeditor"; }
     // 文件管理器。默认应用由 home/common/mime.nix 里的 inode/directory 决定。
     // xdg-open 必须给目标,所以这里就是“用默认文件管理器打开主目录”。
-    // Mod+E hotkey-overlay-title="Open the default file manager" { spawn-sh "xdg-open \"$HOME\""; }
+    Mod+F11 hotkey-overlay-title="Open the default file manager" { spawn-sh "xdg-open \"$HOME\""; }
     // 浏览器。xdg-open 需要网址才能启动,所以直接启动 firefox(与 mime.nix 里的默认一致)。
-    Mod+N hotkey-overlay-title="Open the default browser" { spawn "firefox"; }
+     Mod+F12 hotkey-overlay-title="Open the default browser" { spawn "firefox"; }
 
     // niri默认音量调节步进为0.1,太大了，这里调小
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.04+ -l 1.0"; }
@@ -74,12 +76,19 @@ binds {
 
     // 示例：绑定到 Ctrl+Alt+Delete
     Ctrl+Alt+Delete hotkey-overlay-title="会话菜单" { spawn "noctalia" "msg" "panel-toggle" "session"; }
+    // The quit action will show a confirmation dialog to avoid accidental exits.
+    Ctrl+Alt+Insert { quit; }
 
     // 快捷键速查表(全部键位,见 dotfiles/niri/KEYS.md)。
     // 用 Mod+Slash 而不是 Mod+Shift+Slash:后者已被 base.kdl 用作 niri 自带的
     // 「重要快捷键」浮层,不能覆盖。两者互补 —— 浮层快,KEYS.md 全。
     // 用浮动 kitty + bat 显示,不依赖浏览器。
     Mod+Slash hotkey-overlay-title="Niri 快捷键速查" { spawn-sh "kitty --class niri-keys -T 'Niri 快捷键' -e bat --style=plain --paging=always \"$HOME/.config/niri/KEYS.md\""; }
+
+    // 把当前工作区移动到最顶端
+    Mod+Shift+Home { spawn-sh "for i in $(seq 1 32); do niri msg action move-workspace-up; done"; }
+    // 把当前工作区移动到最底端
+    Mod+Shift+End { spawn-sh "for i in $(seq 1 32); do niri msg action move-workspace-down; done"; }
 
     // 把下面的几个快捷键实际上默认已设置，这里重设只是为了加进hotkey菜单，
     // niri默认 Mod+Shift+/ 显示重要的hotkey菜单
@@ -103,7 +112,7 @@ layout {
         // inactive-color "#3b4261"
     }
     // 在第一个工作区上方保留一个空工作区，方便键盘操作
-    empty-workspace-above-first
+    // empty-workspace-above-first
 }
 
 // 非焦点窗口整体降透明度，焦点窗口保持完全不透明 → 视差感最强
