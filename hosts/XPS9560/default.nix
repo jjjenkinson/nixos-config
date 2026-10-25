@@ -12,8 +12,7 @@
 {
   imports = [
     ./hardware-configuration.nix # 安装器生成(磁盘、内核模块),不要手改
-    ./disks.nix # 本机挂载参数
-    ./external-disks.nix # 额外分区(NTFS)
+    ./disks.nix # 本机挂载参数 + 额外 NTFS 分区
     ./gpu.nix # 双显卡:核显 + NVIDIA(PRIME offload)
   ];
 

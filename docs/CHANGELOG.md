@@ -28,6 +28,11 @@
   `maxGenerations = 10`
 - Windows 启动项按 PARTUUID 指向 `nvme0n1p2` 的 `bootmgfw.efi`，不依赖分区编号
 
+### 结构
+
+- 合并 `hosts/XPS9560/external-disks.nix` 到 `disks.nix`：两者都是「本机磁盘」，
+  合并后少一个 import；额外分区用 `//` 并进 `fileSystems`（同一 attrset 不能写两次）
+
 ### 软件包
 
 - `modules/packages/` 拆成两个文件：`default.nix`（系统基础设施 + 工具链 + btop wrapper）

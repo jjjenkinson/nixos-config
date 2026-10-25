@@ -67,38 +67,37 @@ flowchart TD
 4. **hosts 表** 是唯一的主机清单，一行就是一整套系统 + 用户配置
 5. `nixosSystem` / `homeManagerConfiguration` 各自把模块列表交给模块系统求值
 6. 模块系统先收集 `options` 声明，再合并所有 `config` 赋值（合并语义见文末）
-7. 输出两个 derivation：系统代和 home 代
+7. 输出两个 derivation：系统 generation 和 home generation
 
 ### 程序结构（逐文件职责）
 
 装配层与系统侧：
 
-| 文件                                      | 职责                                             | 注意                                     |
-| ----------------------------------------- | ------------------------------------------------ | ---------------------------------------- |
-| `flake.nix`                               | inputs、`pkgsConfig`、overlays、主机表、两套输出 | 新增主机只改 `hosts` 表                  |
-| `overlays/unstable.nix`                   | 把名单里的包换成 unstable 版                     | 键名用 nixpkgs 顶层属性名                |
-| `pkgs/kopuz.nix`                          | 重新打包上游 `.deb`                              | 不在 nixpkgs 的包都放这里                |
-| `modules/system/default.nix`              | 汇总 import                                      | 新系统模块在这里加一行                   |
-| `modules/system/nix.nix`                  | nix 本体、镜像源、`programs.nh`                  | `nh` 的 flake 路径由 `my.user.name` 推出 |
-| `modules/system/base.nix`                 | 音频、蓝牙、网络、fwupd、journald、nix-ld        | WirePlumber 的 seat 监控关掉了           |
-| `modules/system/boot.nix`                 | Limine、Windows 启动项、内核系列                 | 不手写 `limine.conf`                     |
-| `modules/system/btrfs.nix`                | scrub / fstrim / snapper / `.snapshots` 子卷     | 用 `mkIf` 按文件系统判断                 |
-| `modules/system/locale.nix`               | 时区、`LANG`、英文 locale                        | 不在这里设 `LC_MESSAGES`                 |
-| `modules/packages/default.nix`            | 系统基础设施、工具链、btop wrapper               | btop 只由 wrapper 提供                   |
-| `modules/packages/apps.nix`               | 大件 GUI 应用                                    | 放系统侧是为省 home 切换时间             |
-| `modules/desktop/default.nix`             | 汇总 + KDE 菜单文件                              | 修 niri 下 `kbuildsycoca` 建空库         |
-| `modules/desktop/login-manager.nix`       | lemurs + 控制台字体 + 两个补丁                   | 补丁依赖上游行为，升级后复验             |
-| `modules/desktop/plasma.nix`              | `my.desktop.plasma.enable`                       | 默认关；同时开 X                         |
-| `modules/desktop/niri.nix`                | niri 包、会话、Xwayland、亮度权限                | 只有开关，不含键位                       |
-| `modules/desktop/mango.nix`               | mangowc 包、会话、XDG 自启动桥接                 | 键位在 dotfiles                          |
-| `modules/desktop/fonts.nix`               | 字体与 fontconfig 回退链                         | 等宽必须带 NF                            |
-| `modules/desktop/input-method.nix`        | fcitx5 + Rime + 词库                             | 覆盖配置在 home 侧                       |
-| `modules/users/default.nix`               | 主用户账号与附加组                               | 组里必须有 `seat`                        |
-| `hosts/<主机>/default.nix`                | imports、`stateVersion`、桌面开关                | 不写硬件细节                             |
-| `hosts/<主机>/hardware-configuration.nix` | 分区、swap、内核模块                             | 安装器生成，不手改                       |
-| `hosts/<主机>/disks.nix`                  | 挂载参数                                         | 只追加 `options`                         |
-| `hosts/<主机>/external-disks.nix`         | 额外分区（NTFS）                                 | `nofail` 必加                            |
-| `hosts/<主机>/gpu.nix`                    | 双显卡                                           | Pascal 必须 `legacy_580`                 |
+| 文件                                      | 职责                                             | 注意                                                 |
+| ----------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
+| `flake.nix`                               | inputs、`pkgsConfig`、overlays、主机表、两套输出 | 新增主机只改 `hosts` 表                              |
+| `overlays/unstable.nix`                   | 把名单里的包换成 unstable 版                     | 键名用 nixpkgs 顶层属性名                            |
+| `pkgs/kopuz.nix`                          | 重新打包上游 `.deb`                              | 不在 nixpkgs 的包都放这里                            |
+| `modules/system/default.nix`              | 汇总 import                                      | 新系统模块在这里加一行                               |
+| `modules/system/nix.nix`                  | nix 本体、镜像源、`programs.nh`                  | `nh` 的 flake 路径由 `my.user.name` 推出             |
+| `modules/system/base.nix`                 | 音频、蓝牙、网络、fwupd、journald、nix-ld        | WirePlumber 的 seat 监控关掉了                       |
+| `modules/system/boot.nix`                 | Limine、Windows 启动项、内核系列                 | 不手写 `limine.conf`                                 |
+| `modules/system/btrfs.nix`                | scrub / fstrim / snapper / `.snapshots` 子卷     | 用 `mkIf` 按文件系统判断                             |
+| `modules/system/locale.nix`               | 时区、`LANG`、英文 locale                        | 不在这里设 `LC_MESSAGES`                             |
+| `modules/packages/default.nix`            | 系统基础设施、工具链、btop wrapper               | btop 只由 wrapper 提供                               |
+| `modules/packages/apps.nix`               | 大件 GUI 应用                                    | 放系统侧是为省 home 切换时间                         |
+| `modules/desktop/default.nix`             | 汇总 + KDE 菜单文件                              | 修 niri 下 `kbuildsycoca` 建空库                     |
+| `modules/desktop/login-manager.nix`       | lemurs + 控制台字体 + 两个补丁                   | 补丁依赖上游行为，升级后复验                         |
+| `modules/desktop/plasma.nix`              | `my.desktop.plasma.enable`                       | 默认关；同时开 X                                     |
+| `modules/desktop/niri.nix`                | niri 包、会话、Xwayland、亮度权限                | 只有开关，不含键位                                   |
+| `modules/desktop/mango.nix`               | mangowc 包、会话、XDG 自启动桥接                 | 键位在 dotfiles                                      |
+| `modules/desktop/fonts.nix`               | 字体与 fontconfig 回退链                         | 等宽必须带 NF                                        |
+| `modules/desktop/input-method.nix`        | fcitx5 + Rime + 词库                             | 覆盖配置在 home 侧                                   |
+| `modules/users/default.nix`               | 主用户账号与附加组                               | 组里必须有 `seat`                                    |
+| `hosts/<主机>/default.nix`                | imports、`stateVersion`、桌面开关                | 不写硬件细节                                         |
+| `hosts/<主机>/hardware-configuration.nix` | 分区、swap、内核模块                             | 安装器生成，不手改                                   |
+| `hosts/<主机>/disks.nix`                  | 挂载参数 + 额外分区（NTFS）                      | 只追加 `options`；额外分区用 `//` 并进 `fileSystems` |
+| `hosts/<主机>/gpu.nix`                    | 双显卡                                           | Pascal 必须 `legacy_580`                             |
 
 用户侧与手改配置：
 
@@ -420,8 +419,9 @@ flowchart TD
 | 数据盘      | NTFS，挂 `/mnt/data`                                          |
 
 分工：`hardware-configuration.nix`（安装器生成，不手改）提供 `device` / `fsType` /
-`subvol`；`hosts/*/disks.nix` 只追加 `noatime`、`compress=zstd`；scrub / fstrim /
-快照策略在 `modules/system/btrfs.nix`。
+`subvol`；`hosts/*/disks.nix` 追加 `noatime`、`compress=zstd`，额外 NTFS 分区也写在
+同一个文件里（用 `//` 并进 `fileSystems`）；scrub / fstrim / 快照策略在
+`modules/system/btrfs.nix`。
 
 ### 快照
 
