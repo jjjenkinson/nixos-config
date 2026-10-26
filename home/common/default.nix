@@ -41,6 +41,7 @@
     # ./btop.nix
     ./mime.nix # 默认应用设置
     ./keys.nix # Alt+Shift+/ 的当前应用快捷键速查
+    ./browser-proxy.nix # Chrome/Edge 启动时按代理端口自动决定是否走代理
   ];
 
   # 本文件有顶层 options,其余配置必须放在显式 config 下。

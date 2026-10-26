@@ -82,6 +82,13 @@
 - 修 `keys` 的前台程序识别：Nix 包装器的 `/proc/<pid>/comm` 是 `.hx-wrapped`
   这种名字，先去掉 `.` 前缀和 `-wrapped` 后缀再匹配；同时把「shell → 前台作业」
   沿途的候选逐个查表，避免编辑器派生的 LSP 子进程把结果盖掉
+- `helix.md` 再按 `keymap/default.rs` 复核：修正 `0` / `$` 的说明（`$` 是
+  `shell_keep_pipe`，不是行尾）；补 `Space e/E` 文件树、`Space Alt+c`、`Ctrl+W t`、
+  `]e/[e`、`g j/g k`、`Alt+x`、`z m`、`Ctrl+z`，并注明 `Tab` 等同 `Ctrl+i`
+- 新增 `neovim.md`：`home/common/neovim.nix` 只设了 `clipboard` / 行号，
+  所以整表是 0.12.4 默认键位，按 `:help index` + `nvim --clean` 的 `:map` 输出整理；
+  标出 0.12 新增的默认映射（`[`/`]` 家族、`gc`、`gx`、`gn`、matchit 默认启用），
+  并注明 `[d`/`]d` 已被诊断跳转占用、`Y` 是 `y$`
 
 ### 用户环境
 
@@ -93,6 +100,10 @@
   两段 fill 接上仍是一条整线。试过用 fish `fish_postexec` / bash `DEBUG trap`
   在命令输出后另打一行，改成这个方案后把那两段钩子删掉了
 - bash 与 fish 一样由 starship 渲染提示符（`enableBashIntegration` 显式写出，默认也开）
+- Chrome / Edge 在 niri 下读不到「系统代理」（只认 GNOME / KDE），新增
+  `home/common/browser-proxy.nix` 覆盖 `~/.local/share/applications` 的 .desktop：
+  启动时探测本地代理端口，在监听才加 `--proxy-server`，否则直连；只增加 36 KiB，
+  不把浏览器包拉进 home 闭包
 
 ### 编辑器
 
@@ -106,6 +117,28 @@
 - 顺带修正旧配置里的无效键：`programs`、`helix_mod`、`clear_thinking`、
   重复的 `project_context`，以及会报 `FormatterList` 解析错的嵌套 `code_actions`
 - Helix `languages.toml` 的格式化命令改用 PATH 里的 `nixfmt`，不再写死 store 路径
+- Zed AI 成本：`auto_compact` 的键名写错（`enable` → `enabled`），此前阈值
+  实际按默认 90% 生效，配合 1M 上下文声明，单次请求可涨到 55 万 token。
+  现在改为绝对 167000；主模型 `max_output_tokens` 32000 → 30000
+- 压缩 / 线程摘要 / 提交信息曾指向免费的 `glm-4.7-flash`，但该模型常报 429
+  「访问量过大」，现已注释掉，回落到主模型 `deepseek/deepseek-flash`（要花钱，
+  想省下来可换成 `glm-5.3-flash`）
+- 删掉两个 1.25 已不存在的失效键 `project_context` / `include_active_editor_context`
+- 修 Zed Python 格式化的真正原因：`formatter` 只接受 `auto` / `none` / `prettier` /
+  `external` / `code_action`（字符串）/ `language_server` 这几种变体，原来的
+  `[{ code_actions = { … } }]` 用的是不存在的 `code_actions`，所以 Zed.log 反复报
+  `FormatterList` 解析失败、Python 退回默认格式化器。现在改成两阶段：
+  `code_actions_on_format`（Ruff 整理 import / fixAll）→ `formatter.language_server`（ruff）
+- Zed 的 `agent.*`（默认模型、压缩阈值 / 压缩模型、工具权限）从
+  `dotfiles/zed/settings.json` 移进 `home/common/zed-editor.nix`：这些键很少变，
+  放 Nix 侧才能写注释、走类型检查；仓库 JSON 只留主题、字体等纯外观项
+- 修正 Zed 压缩 / 摘要 / 提交信息模型的 provider：必须写
+  `language_models.openai_compatible` 下的键名（`ZhipuAI`），原来写
+  `openai_compatible` 查不到 provider，会静默回落主模型（telemetry 实测压缩
+  走的是 `deepseek/deepseek-flash`）；压缩阈值同时改为绝对 167000
+- 修正 Zed `delete_path` 的放行 pattern：工具拿到的是「项目名/相对路径」
+  （`nixos-config/docs/…`），原来写绝对路径 `^/home/jiro/nixos-config/docs/`
+  永远匹配不到；现在由 `config.my.repoDir` 取 basename 拼接，改仓库目录名时自动跟随
 
 ### 软件包
 

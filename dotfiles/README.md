@@ -77,8 +77,8 @@ xdg.configFile."niri/config.kdl".source =
 Zed 的 nixd 配置需要按主机名/用户名插值，静态文件做不到，所以它是
 「Nix 管稳定项 + 仓库文件 + 软链」的组合：
 
-- 稳定项（扩展、`terminal`、`languages`、`lsp`）在 `home/common/zed-editor.nix`
-- 常改项（主题、字体、AI）在 `dotfiles/zed/settings.json`
+- 稳定项（扩展、`terminal`、`languages`、`lsp`、`agent`）在 `home/common/zed-editor.nix`
+- 常改项（主题、字体）在 `dotfiles/zed/settings.json`
 - `~/.config/zed/settings.json` 软链到上面那份，所以 GUI 改动直接写进仓库文件
 - 每次 `nh home switch`：HM 用 jq 把 Nix 静态值与仓库文件递归合并后写回，
   所以**该文件里的注释会被抹掉**，注释写 Nix 侧

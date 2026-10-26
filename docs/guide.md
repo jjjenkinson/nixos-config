@@ -113,16 +113,17 @@ flowchart TD
 | `home/common/noctalia.nix`               | `00-nix.toml` 软链                                             | 不管 `settings.toml`                                   |
 | `home/common/mime.nix`                   | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在                                |
 | `home/common/keys.nix`                   | `keys` 命令：探测焦点窗口 → 打开速查表                         | `Alt+Shift+/`；KDE 需手动绑一次                        |
+| `home/common/browser-proxy.nix`          | Chrome / Edge 启动器：按代理端口决定是否加参数                 | 覆盖 `~/.local/share` 下的 .desktop                    |
 | `home/common/git-ssh.nix`                | git 身份、github.com SSH、sockets 目录                         | 密钥不进 store                                         |
 | `home/common/helix.nix`                  | 只建软链（内容在 `dotfiles/helix/`）                           | 留空 `settings` / `languages`，否则顶掉软链            |
-| `home/common/zed-editor.nix`             | 稳定项（扩展 / 终端 / `languages` / `lsp`）+ 建软链            | 每次 switch 把静态值合并进仓库文件                     |
+| `home/common/zed-editor.nix`             | 稳定项（扩展 / 终端 / `languages` / `lsp` / `agent`）+ 建软链  | 每次 switch 把静态值合并进仓库文件                     |
 | `home/common/neovim.nix`                 | Neovim                                                         | 仍是 Nix 生成                                          |
 | `home/<用户>/default.nix`                | `my.git`、`my.editor`、个人软件                                | 不重复 common 已有配置                                 |
 | `dotfiles/niri/config.kdl`               | niri 键位与布局                                                | 保存即热重载                                           |
 | `dotfiles/mango/config.conf`             | mango 键位与外观                                               | 保存即热重载                                           |
 | `dotfiles/noctalia/00-nix.toml`          | noctalia 固定项                                                | 会被 GUI 的 `settings.toml` 覆盖                       |
 | `dotfiles/helix/{config,languages}.toml` | Helix 设置与 LSP                                               | 保存后 `:config-reload`                                |
-| `dotfiles/zed/settings.json`             | Zed 常改项（主题 / 字体 / AI）                                 | `~/.config/zed/settings.json` 软链到它；保存即生效     |
+| `dotfiles/zed/settings.json`             | Zed 常改项（主题 / 字体）                                      | `~/.config/zed/settings.json` 软链到它；保存即生效     |
 | `dotfiles/keybindings/*.md`              | 所有快捷键表（应用 + niri/mango）                              | `keys` 直接读仓库，改完下次按键即生效（文件名 = 表名） |
 
 ### 一次 rebuild 做了什么
@@ -215,14 +216,19 @@ modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enab
 
 Zed 是例外，用第三种模式（`mutableUserSettings` + 软链）：
 
-- Nix 侧写稳定项（扩展、`terminal`、`languages`、`lsp.nixd`，其中 nixd 的 expr
-  要按主机名/用户名插值）
-- 常改项（主题、字体、AI）在 `dotfiles/zed/settings.json`，
+- Nix 侧写稳定项（扩展、`terminal`、`languages`、`lsp.nixd`、`agent`，其中 nixd
+  的 expr 要按主机名/用户名插值）
+- 常改项（主题、字体）在 `dotfiles/zed/settings.json`，
   `~/.config/zed/settings.json` 软链到它，所以 GUI 改动直接进 git
 - 每次 `nh home switch` 用 jq 把两边递归合并（对象递归；标量、数组以 Nix 为准）
   后覆盖写回仓库文件，所以该文件里的注释会被抹掉，注释一律写在
   `home/common/zed-editor.nix`
 - 反过来：从 Nix 删掉某个键，仓库文件里原来那份仍会保留，需要手动删
+- AI 成本相关的 `agent.*` 在 Nix 侧：`auto_compact.threshold` 是绝对 token 数
+  （167000，约等于 `glm-4.7-flash` 可用输入 200k − 30k 输出）；压缩 / 摘要 /
+  提交信息用免费的 `glm-4.7-flash`。provider 必须写
+  `language_models.openai_compatible` 下的键名（`ZhipuAI`），写成
+  `openai_compatible` 会静默回落主模型
 - 软链由 activation 自愈：若被某个程序原子保存替换成普通文件，
   先把内容写回仓库，再重建软链（用硬链会因为 inode 被换而静默分叉）
 
@@ -251,7 +257,7 @@ Zed 是例外，用第三种模式（`mutableUserSettings` + 软链）：
 > Helix 不监视自己的配置文件：改 `dotfiles/helix/*.toml` 后要在 Helix 里执行
 > `:config-reload`（或重启 `hx`）。其余 dotfiles（niri / mango / noctalia）保存即生效。
 > Zed 的 `~/.config/zed/settings.json` 由 Zed 自己热重载；Nix 侧管的键（`languages` /
-> `lsp` / `terminal` / 扩展）要 `nh home switch` 后才会写进去。
+> `lsp` / `terminal` / 扩展 / `agent`）要 `nh home switch` 后才会写进去。
 
 ```bash
 nh os switch          # 切换系统代
@@ -446,7 +452,7 @@ flowchart TD
   表里第 3 列是英文说明（单独一列），新增键位时中英各写一遍。
   只有**表头带「作用」列**的表会被收录（`| 按键 | 作用 | English |`）；
   列语义不同的参考表（如 `| 功能 | niri | mango |`）不进速查，否则会把列宽撑坏。
-  一行所有列（含段名）合计控制在 **≤110 字符宽**（= 55 个汉字宽）：fzf 不折行，超了直接截断。
+  一行所有列（含段名）合计控制在 **≤120 字符宽**（AGENTS.md 的约定）：fzf 不折行，再宽就会被速查窗口截断。
   拍平后会去掉 `反引号` 和 `**粗体**` 标记（它们只对 markdown 渲染有意义）。
 
 ## 硬件与引导
@@ -529,6 +535,9 @@ btop 能看两张卡：系统侧 wrapper 给 `CAP_PERFMON`（核显），`cudaSu
 - **编辑器**：Helix 默认（`my.editor`），Neovim 备用，Zed 走 unstable。
   Zed 的 nixd 需要两个 expr：`nixosConfigurations.<host>.options` 和
   `homeConfigurations."<user>@<host>".options`（HM 是独立模式）。
+  Zed Agent 的上下文用掉 167000 token 时自动压缩（`auto_compact.threshold`
+  写绝对值；`glm-4.7-flash` 可用输入 = 200k − 30k 输出 = 170k）；
+  压缩 / 线程摘要 / 提交信息走免费的 `glm-4.7-flash`，provider 写 `ZhipuAI`。
 - **默认应用**：视频/音频 → mpv，网页 → firefox，目录 → `my.fileManager`
   （不装 KDE 的机器改 `thunar.desktop` 并装 `pkgs.thunar`）。生成的
   `mimeapps.list` 是只读软链。
