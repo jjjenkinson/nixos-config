@@ -79,11 +79,16 @@ binds {
     // The quit action will show a confirmation dialog to avoid accidental exits.
     Ctrl+Alt+Insert { quit; }
 
-    // 快捷键速查表(全部键位,见 dotfiles/niri/KEYS.md)。
+    // 快捷键速查表(全部键位,见 dotfiles/keybindings/niri.md)。
     // 用 Mod+Slash 而不是 Mod+Shift+Slash:后者已被 base.kdl 用作 niri 自带的
-    // 「重要快捷键」浮层,不能覆盖。两者互补 —— 浮层快,KEYS.md 全。
-    // 用浮动 kitty + bat 显示,不依赖浏览器。
-    Mod+Slash hotkey-overlay-title="Niri 快捷键速查" { spawn-sh "kitty --class niri-keys -T 'Niri 快捷键' -e bat --style=plain --paging=always \"$HOME/.config/niri/KEYS.md\""; }
+    // 「重要快捷键」浮层,不能覆盖。两者互补 —— 浮层快,速查表(keybindings/niri.md)全。
+    // 用浮动 foot + fzf 显示（和 Alt+Shift+/ 完全同一套，只是直接指定表名）。
+    Mod+Slash hotkey-overlay-title="Niri 快捷键速查" { spawn-sh "$HOME/.nix-profile/bin/keys niri"; }
+
+    // 当前应用的快捷键速查(Alt+Shift+Slash)。
+    // 系统键位保持不变:Mod+Slash 是完整表,Mod+Shift+Slash 是 niri 内置浮层。
+    // 脚本会按桌面环境取焦点窗口;没有该应用的表时用 noctalia 弹通知。
+    Alt+Shift+Slash hotkey-overlay-title="当前应用快捷键" { spawn-sh "$HOME/.nix-profile/bin/keys"; }
 
     // 把当前工作区移动到最顶端
     Mod+Shift+Home { spawn-sh "for i in $(seq 1 32); do niri msg action move-workspace-up; done"; }
@@ -121,11 +126,13 @@ window-rule {
     opacity 0.8
 }
 
-// 速查表窗口(Mod+Slash):浮动 + 固定占屏比例
+// 速查窗口(Mod+Slash 与 Alt+Shift+Slash 共用):浮动，固定 0.66×0.8。
+// 宽高写在这里而不是让程序请求：fzf 是单栏检索，不需要按内容算尺寸。
+// 注意 niri 只写宽度不生效，必须和 default-window-height 一起写。
 window-rule {
-    match app-id=r#"^niri-keys$"#
+    match app-id=r#"^keys$"#
     open-floating true
-    default-column-width { proportion 0.62; }
+    default-column-width { proportion 0.66; }
     default-window-height { proportion 0.8; }
 }
 

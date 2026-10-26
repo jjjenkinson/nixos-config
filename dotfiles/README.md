@@ -31,16 +31,17 @@ xdg.configFile."niri/config.kdl".source =
 
 ## 当前内容
 
-| 路径                   | 被谁读取                                        | 生效方式                                                                                                         |
-| ---------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `niri/config.kdl`      | niri（经 `~/.config/niri/config.kdl`）          | 保存即热重载；异常时 `niri msg action load-config-file`                                                          |
-| `mango/config.conf`    | mango（经 `~/.config/mango/config.conf`）       | 保存即热重载（`auto_reload_config=1`）                                                                           |
-| `noctalia/00-nix.toml` | Noctalia（经 `~/.config/noctalia/00-nix.toml`） | 保存即热重载（配置目录被监听）；会被 `~/.local/state/noctalia/settings.toml` 覆盖同名键；noctalia 不会重写该目录 |
-| `helix/config.toml`    | Helix（经 `~/.config/helix/config.toml`）       | 保存后在 Helix 里执行 `:config-reload`（它不监视配置文件）                                                       |
-| `helix/languages.toml` | Helix（经 `~/.config/helix/languages.toml`）    | 同上                                                                                                             |
-| `zed/settings.json`    | Zed（经 `~/.config/zed/settings.json` 软链）    | 保存即生效；但每次 `nh home switch` 会被 HM 合并后重写（注释丢失）                                               |
-| `niri/KEYS.md`         | kitty（`Mod+/` 打开）                           | 手写速查表，改键位后需手动同步                                                                                   |
-| `mango/KEYS.md`        | kitty（`Super+Shift+/` 打开）                   | 同上                                                                                                             |
+| 路径                   | 被谁读取                                                | 生效方式                                                                                                         |
+| ---------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `niri/config.kdl`      | niri（经 `~/.config/niri/config.kdl`）                  | 保存即热重载；异常时 `niri msg action load-config-file`                                                          |
+| `mango/config.conf`    | mango（经 `~/.config/mango/config.conf`）               | 保存即热重载（`auto_reload_config=1`）                                                                           |
+| `noctalia/00-nix.toml` | Noctalia（经 `~/.config/noctalia/00-nix.toml`）         | 保存即热重载（配置目录被监听）；会被 `~/.local/state/noctalia/settings.toml` 覆盖同名键；noctalia 不会重写该目录 |
+| `helix/config.toml`    | Helix（经 `~/.config/helix/config.toml`）               | 保存后在 Helix 里执行 `:config-reload`（它不监视配置文件）                                                       |
+| `helix/languages.toml` | Helix（经 `~/.config/helix/languages.toml`）            | 同上                                                                                                             |
+| `zed/settings.json`    | Zed（经 `~/.config/zed/settings.json` 软链）            | 保存即生效；但每次 `nh home switch` 会被 HM 合并后重写（注释丢失）                                               |
+| `keybindings/*.md`     | `keys` 命令（`Alt+Shift+/`）；niri / mango 的表也在这里 | 直接读仓库，改完下次按键即生效                                                                                   |
+| `keybindings/niri.md`  | foot（`Mod+/` 打开）                                    | 手写速查表，改键位后需手动同步                                                                                   |
+| `keybindings/mango.md` | foot（`Super+Shift+/` 打开）                            | 同上                                                                                                             |
 
 ## 已知限制
 
@@ -51,6 +52,25 @@ xdg.configFile."niri/config.kdl".source =
   改的是仓库里的文件，`git status` 会变脏 —— 这是热重载的代价，不是 bug。
 - **别让 Nix 和软链抢同一个路径**。比如写了 `programs.helix.settings`，
   Home Manager 会生成 store 文件把软链顶掉，热重载就失效了。对应选项必须保持为空。
+
+## 应用速查表（keybindings/）
+
+`Alt+Shift+/` 调用的 `keys` 会按当前焦点窗口找 `keybindings/<应用>.md`：
+
+- 文件名用**归一化 app_id**：取最后一个 `.` 之后的部分并小写
+  （`dev.zed.Zed` → `zed.md`，`org.kde.dolphin` → `dolphin.md`）
+- 终端窗口会继续往下找前台进程（hx → `helix.md`，yazi → `yazi.md`），
+  找不到就回退到终端自己的表
+- 没有对应文件时弹 `notify-send` 通知，按提示新建即可，**不需要 rebuild**
+- 合成器自己的表也在同一个目录：`keybindings/niri.md`、`keybindings/mango.md`
+  （文件名就是 `keys niri` / `keys mango` 要找的表名，不再有两套查找路径）
+- 表格格式：`| 按键 | 中文说明 | English |`。第 3 列是英文（单独一列，方便合并搜索），
+  **新增键位时中英文都要写**；`## 标题` 会作为 fzf 里的段名，表头行不收录。
+  只有表头带「作用」列的表会被收录（`| 功能 | niri | mango |` 这类参考表不进速查）。
+  文件里的散文和代码块也不会进列表 —— fzf 是一行一个条目
+- **宽度：一行所有列（含段名）合计 ≤110 字符宽度（=55 个汉字宽）**（合宽了 fzf 直接截断）。
+  所以中文说明和英文都要短；键盘符号用键帽写法（`Mod+[` 而不是 `Mod+BracketLeft`），
+  完整 keysym 写在表下散文里
 
 ## Zed 的特殊之处
 

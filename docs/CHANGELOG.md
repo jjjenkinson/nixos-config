@@ -33,10 +33,53 @@
 - 合并 `hosts/XPS9560/external-disks.nix` 到 `disks.nix`：两者都是「本机磁盘」，
   合并后少一个 import；额外分区用 `//` 并进 `fileSystems`（同一 attrset 不能写两次）
 
+### 快捷键速查
+
+- 新增 `keys` 命令（`home/common/keys.nix`）与 `Alt+Shift+/`：按当前焦点窗口
+  打开对应应用的表（`dotfiles/keybindings/*.md`）。终端窗口会再识别前台进程
+  （hx / nvim / yazi …）；缺表时用 `notify-send` 通知。
+  niri / mango 原有系统快捷键未动；没有焦点窗口时显示各自的完整表
+- 按桌面环境自动选探测方式：niri（`niri msg --json`）、mango（`mmsg`）、
+  KDE（`kdotool`）、其余 X11（`xdotool`）。KDE 的快捷键需手动绑一次（Plasma 6 限制）
+- 新增四份表：`keybindings/{kitty,zed,helix,yazi}.md`
+- 显示方式定为 **终端 + fzf 单栏列表**：窗口固定 0.66×0.8，输入关键字实时过滤，
+  Enter 只关闭。表格在运行时用 awk 拍平成「段名 / 按键 / 中文 / 英文」并用
+  `column -t` 对齐（fzf 自己不排齐列，中文宽度也对不上）；表头行不收录
+- `Mod+/`、`Super+Shift+/` 不再自己开 `bat` 窗口，统一改成 `keys niri` / `keys mango`，
+  三个入口行为一致；顺带删掉 `niri-keys` / `mango-keys` 两条窗口规则
+- 新增文档约定：表格第 3 列是英文说明，新增键位要求中英各写一遍
+- 键位表目录 `dotfiles/keys/` 改名为 `dotfiles/keybindings/`，并把
+  `niri/KEYS.md` / `mango/KEYS.md` 也合并进来成为 `niri.md` / `mango.md`：
+  文件名统一就是 `keys <表名>` 要找的名字，脚本里「应用表 + 合成器表」
+  两套查找路径简化为一条（`~/.config/{niri,mango}/KEYS.md` 软链保留，方便手动查看）
+- 六张表全部补上英文列（中文同步做简略化）：中文 / 英文都能在 fzf 里搜；
+  并按 `AGENTS.md` 的宽度约定重排：一行所有列（含段名）**≤110 字符宽**
+  （原先 mango 178 列、niri 131 列，超出窗口的部分一直被截断）
+- 弹窗终端从 kitty 换成 **foot**：实测「按下 → 窗口出现」kitty 240ms、foot 80ms，
+  而脚本 + awk/column + fzf 合计才 45ms —— 迟钝的瓶颈全在 kitty 新开窗口上
+  （跳自己的配置 `--config NONE` 只快 10ms，`single_instance=yes` 也不复用进程）。
+  foot 用独立配置文件（`font=Maple Mono NF CN:size=12`、`pad=6x6`），
+  不碰 `~/.config/foot/foot.ini`；`--app-id=keys` 让原有两条窗口规则继续生效，
+  niri / mango 的配置只改了注释。kitty 仍是 `Mod+T` 的终端
+- 弹窗配色调暗：foot 默认是纯黑底 + 纯白字，而 fzf 默认把当前行画成 256 色的
+  `bg+=237`（浅灰），`--layout=reverse` 下就贴在顶部像一条白带。现在 foot 用
+  `#1b1b1b` 底 / `#c8c8c8` 字，fzf 显式指定整套颜色（当前行 `#2f2f2f`），
+  bg 与 foot 保持一致，不会有拼缝
+- 收录规则改为「表头带「作用」列才进速查」：mango 末尾的「niri 对照」两张表
+  列语义不同，不再混进取速查（否则会把 `column -t` 的列宽撑坏）
+- 拍平时去掉 `反引号` 与 `**粗体**` 标记；keysym 改用键帽写法
+  （`Mod+[` / `Mod+,` / `Mod+-`），完整拼写放表下散文里
+
 ### 用户环境
 
-- starship 提示符改为三行：信息行、整行 `─` 分隔线（`$fill`，随窗口宽度自适应；
-  颜色用 overlay0 而不是默认的 near-black）、输入行
+- starship 提示符改为三行：整行 `─` 分隔线（`$fill`，随窗口宽度自适应；
+  颜色用 overlay0 而不是默认的 near-black）、信息行、输入行
+- 上一条命令的耗时显示在**分隔线正中**（starship `cmd_duration`）：`format` 里用
+  两段 `$fill` 夹住它 —— 同一行的多个 `$fill` 会平分剩余宽度（实测 50 列 → 23 + 23），
+  就不需要自己算居中；`min_time = 2000` 只报 2 秒以上的命令，未到阈值时中间为空，
+  两段 fill 接上仍是一条整线。试过用 fish `fish_postexec` / bash `DEBUG trap`
+  在命令输出后另打一行，改成这个方案后把那两段钩子删掉了
+- bash 与 fish 一样由 starship 渲染提示符（`enableBashIntegration` 显式写出，默认也开）
 
 ### 编辑器
 

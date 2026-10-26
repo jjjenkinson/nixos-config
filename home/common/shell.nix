@@ -1,5 +1,5 @@
 # Shell 与终端:fish(主力)、bash(兼容)、kitty、starship、eza、代理函数。
-{ ... }:
+{ lib, ... }:
 
 {
   # ── fish(默认 shell)────────────────────────────────────────────────
@@ -69,17 +69,27 @@
   # ── 提示符 ──────────────────────────────────────────────────────────
   programs.starship = {
     enable = true;
+    enableFishIntegration = true; # 关键：让 Fish 使用 Starship
+    enableBashIntegration = true;
     settings = {
       # 三行:
-      #   1. 信息行(os / 目录 / git / nix shell)
-      #   2. 整行分隔线:fill 用 - 把当前行剩余宽度填满,随窗口宽度自适应
+      #   1. 整行分隔线：两段 $fill 各填一半，上一条命令的耗时夹在中间 → 视觉居中
+      #   2. 信息行(os / 目录 / git / nix shell)
       #   3. 输入行(character)
-      format = "$fill$line_break$os$directory$git_branch$git_status$nix_shell$line_break$character";
+      #
+      # 为什么写两个 $fill：starship 没有「居中」这种模块，但同一行里的多个 $fill
+      # 会把剩余宽度平分（实测 50 列宽、中间是「5s」时左右各 23 个 ─）。
+      # 耗时未到 min_time 时中间是空的，两段 fill 直接接上，仍是一条连续整线。
+      # format = "$fill$cmd_duration$fill$line_break$os$directory$git_branch$git_status$nix_shell$line_break$character";
+      format = lib.concatStrings [
+        "$fill$cmd_duration$fill$line_break$line_break"
+        "$os$directory$git_branch$git_status$nix_shell$character"
+      ];
       os.disabled = false;
       os.symbols.NixOS = "  ";
 
-      # fill 必须单独占一行:它只填「当前行剩下的宽度」,
-      # 后面跟其他模块会被挤到行尾之外。
+      # fill 行上只能放 fill 和夹在中间的耗时:fill 只填「当前行剩下的宽度」,
+      # 后面再跟其他模块就会被挤到行尾之外。
       # 注意 $fill 后面只能接 $ 开头的模块名;接普通文字要写成 ${line_break} 或加分隔符,
       # 否则 starship 会把 "fillfoo" 当成一个模块名。
       #
@@ -90,6 +100,17 @@
         symbol = "─";
         style = "fg:#6c7086";
       };
+
+      # 上一条命令的耗时，夹在两段 fill 中间（见上面 format 的说明）。
+      cmd_duration = {
+        # 只报耗时不短于 2 秒的命令，短命令不打扰
+        min_time = 2000;
+        # false → 粗粒度（1s / 1m5s）；true → 1234ms / 1s234ms
+        show_milliseconds = false;
+        # 两侧各留一个空格，免得和 ─ 贴在一起
+        format = " $duration ";
+        style = "fg:#6c7086"; # 同分隔线同色，不抢眼
+      };
     };
   };
 
@@ -99,6 +120,7 @@
     icons = "auto"; # 文件类型图标(需要 Nerd Font)
     git = true; # 显示 git 状态列
     enableFishIntegration = true;
+    enableBashIntegration = true;
   };
 
   # ── 模糊查找 / 目录跳转 ─────────────────────────────────

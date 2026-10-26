@@ -14,7 +14,7 @@
 | 单机     | `hosts/<主机名>/`        | 分区、显卡、桌面开关、主机名                       | `sudo nh os switch`                       |
 | 共享用户 | `home/common/`           | shell、编辑器、输入法、默认应用                    | `nh home switch`                          |
 | 单用户   | `home/<用户名>/`         | git 身份、默认编辑器、个人软件                     | `nh home switch`                          |
-| 手改配置 | `dotfiles/`              | niri / mango / noctalia / helix / zed 的纯文本配置 | 保存即热重载（Helix 要 `:config-reload`） |
+| 手改配置 | `dotfiles/`              | niri / mango / noctalia / helix / zed / 应用速查表 | 保存即热重载（Helix 要 `:config-reload`） |
 
 `hosts/` 描述**机器**，`home/` 描述**人**，`modules/` 是共用零件。
 `flake.nix` 只做组装：用 `mapAttrs` 把 `hosts` 表展开成 N 个系统配置和 N 个用户配置。
@@ -101,28 +101,29 @@ flowchart TD
 
 用户侧与手改配置：
 
-| 文件                                     | 职责                                                           | 注意                                               |
-| ---------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
-| `home/common/default.nix`                | 选项声明、`home.packages`、XDG 目录、编辑器变量                | 有顶层 options，配置写在 `config` 下               |
-| `home/common/shell.nix`                  | fish / bash / kitty / starship / eza / fzf / zoxide / 代理函数 | `LC_MESSAGES` 只能在交互式分支                     |
-| `home/common/rime.nix`                   | Rime 覆盖 + 删 build                                           | 文件名必须是 `default.custom.yaml`                 |
-| `home/common/yazi.nix`                   | yazi 设置、插件、fetcher                                       | git 标记靠 `prepend_fetchers`                      |
-| `home/common/btop.nix`                   | btop 配置                                                      | `package = null`，用系统 side wrapper              |
-| `home/common/niri.nix`                   | `base.kdl` 生成 + `config.kdl` 软链 + KEYS.md                  | 软链 → `dotfiles/`                                 |
-| `home/common/mango.nix`                  | `config.conf` 软链 + 截图/布局脚本                             | 软链 → `dotfiles/`                                 |
-| `home/common/noctalia.nix`               | `00-nix.toml` 软链                                             | 不管 `settings.toml`                               |
-| `home/common/mime.nix`                   | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在                            |
-| `home/common/git-ssh.nix`                | git 身份、github.com SSH、sockets 目录                         | 密钥不进 store                                     |
-| `home/common/helix.nix`                  | 只建软链（内容在 `dotfiles/helix/`）                           | 留空 `settings` / `languages`，否则顶掉软链        |
-| `home/common/zed-editor.nix`             | 稳定项（扩展 / 终端 / `languages` / `lsp`）+ 建软链            | 每次 switch 把静态值合并进仓库文件                 |
-| `home/common/neovim.nix`                 | Neovim                                                         | 仍是 Nix 生成                                      |
-| `home/<用户>/default.nix`                | `my.git`、`my.editor`、个人软件                                | 不重复 common 已有配置                             |
-| `dotfiles/niri/config.kdl`               | niri 键位与布局                                                | 保存即热重载                                       |
-| `dotfiles/mango/config.conf`             | mango 键位与外观                                               | 保存即热重载                                       |
-| `dotfiles/noctalia/00-nix.toml`          | noctalia 固定项                                                | 会被 GUI 的 `settings.toml` 覆盖                   |
-| `dotfiles/helix/{config,languages}.toml` | Helix 设置与 LSP                                               | 保存后 `:config-reload`                            |
-| `dotfiles/zed/settings.json`             | Zed 常改项（主题 / 字体 / AI）                                 | `~/.config/zed/settings.json` 软链到它；保存即生效 |
-| `dotfiles/*/KEYS.md`                     | 快捷键速查                                                     | 手写，改键位后同步                                 |
+| 文件                                     | 职责                                                           | 注意                                                   |
+| ---------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------ |
+| `home/common/default.nix`                | 选项声明、`home.packages`、XDG 目录、编辑器变量                | 有顶层 options，配置写在 `config` 下                   |
+| `home/common/shell.nix`                  | fish / bash / kitty / starship / eza / fzf / zoxide / 代理函数 | `LC_MESSAGES` 只能在交互式分支                         |
+| `home/common/rime.nix`                   | Rime 覆盖 + 删 build                                           | 文件名必须是 `default.custom.yaml`                     |
+| `home/common/yazi.nix`                   | yazi 设置、插件、fetcher                                       | git 标记靠 `prepend_fetchers`                          |
+| `home/common/btop.nix`                   | btop 配置                                                      | `package = null`，用系统 side wrapper                  |
+| `home/common/niri.nix`                   | `base.kdl` 生成 + `config.kdl` 软链 + KEYS.md                  | 软链 → `dotfiles/`                                     |
+| `home/common/mango.nix`                  | `config.conf` 软链 + 截图/布局脚本                             | 软链 → `dotfiles/`                                     |
+| `home/common/noctalia.nix`               | `00-nix.toml` 软链                                             | 不管 `settings.toml`                                   |
+| `home/common/mime.nix`                   | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在                                |
+| `home/common/keys.nix`                   | `keys` 命令：探测焦点窗口 → 打开速查表                         | `Alt+Shift+/`；KDE 需手动绑一次                        |
+| `home/common/git-ssh.nix`                | git 身份、github.com SSH、sockets 目录                         | 密钥不进 store                                         |
+| `home/common/helix.nix`                  | 只建软链（内容在 `dotfiles/helix/`）                           | 留空 `settings` / `languages`，否则顶掉软链            |
+| `home/common/zed-editor.nix`             | 稳定项（扩展 / 终端 / `languages` / `lsp`）+ 建软链            | 每次 switch 把静态值合并进仓库文件                     |
+| `home/common/neovim.nix`                 | Neovim                                                         | 仍是 Nix 生成                                          |
+| `home/<用户>/default.nix`                | `my.git`、`my.editor`、个人软件                                | 不重复 common 已有配置                                 |
+| `dotfiles/niri/config.kdl`               | niri 键位与布局                                                | 保存即热重载                                           |
+| `dotfiles/mango/config.conf`             | mango 键位与外观                                               | 保存即热重载                                           |
+| `dotfiles/noctalia/00-nix.toml`          | noctalia 固定项                                                | 会被 GUI 的 `settings.toml` 覆盖                       |
+| `dotfiles/helix/{config,languages}.toml` | Helix 设置与 LSP                                               | 保存后 `:config-reload`                                |
+| `dotfiles/zed/settings.json`             | Zed 常改项（主题 / 字体 / AI）                                 | `~/.config/zed/settings.json` 软链到它；保存即生效     |
+| `dotfiles/keybindings/*.md`              | 所有快捷键表（应用 + niri/mango）                              | `keys` 直接读仓库，改完下次按键即生效（文件名 = 表名） |
 
 ### 一次 rebuild 做了什么
 
@@ -195,7 +196,7 @@ modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enab
 ├── home/
 │   ├── common/                # 所有用户共用
 │   └── <用户名>/              # 个人设置
-├── dotfiles/                  # 手改 + 热重载（niri / mango / noctalia / helix / zed）
+├── dotfiles/                  # 手改 + 热重载（niri / mango / noctalia / helix / zed / keybindings）
 ├── share/wallpapers/          # Limine 壁纸
 ├── .agents/skills/            # 给 Zed Agent 的项目内技能
 └── docs/                      # 本文件 + 更改记录
@@ -427,8 +428,26 @@ flowchart TD
 - **输入法**：fcitx5 + Rime 雾凇。覆盖写在 `default.custom.yaml`：
   候选 7 个，左 Shift `commit_code`（拼音上屏为英文并切英文），
   右 Shift `inline_ascii`（临时西文）。
-- **快捷键**：完整表在 `dotfiles/niri/KEYS.md`（`Mod+/`）和
-  `dotfiles/mango/KEYS.md`（`Super+Shift+/`）。两份都是手写文件，改键位后要手动同步。
+- **快捷键**：完整表在 `dotfiles/keybindings/niri.md`（`Mod+/`）和
+  `dotfiles/keybindings/mango.md`（`Super+Shift+/`）。两份都是手写文件，改键位后要手动同步。
+- **当前应用速查**：`Alt+Shift+/` 调用 `keys`（`home/common/keys.nix`），
+  它按桌面环境取焦点窗口（niri / mango / KDE / X11），终端里会再往下认前台程序
+  （hx / nvim / yazi…），再到 `dotfiles/keybindings/<应用>.md` 找表；没有就弹通知。
+  没有焦点窗口时，niri / mango 下直接显示各自的完整表。
+  窗口固定 0.66×0.8，里面是 **fzf 单栏列表**：输入关键字实时过滤（中/英都能搜，
+  空格表示同时包含），Enter 只关闭窗口。一行一个快捷键，列是「段名 / 按键 / 中文 / 英文」，
+  对齐在 awk + `column -t` 里完成（fzf 自己不排齐列，中文宽度也对不上）；
+  弹窗用的是 **foot** 而不是 kitty：窗口从按下到出现 kitty ≈285ms、foot ≈125ms，
+  差的 240ms 全在 kitty 新开窗口上（脚本部分才 45ms）。kitty 仍是 `Mod+T` 的终端。
+  `Mod+/` 和 `Super+Shift+/` 走同一个入口（只是直接指定表名）。
+  **KDE 需手动绑一次**：系统设置 → 快捷键 → 添加命令，填
+  `/home/<用户>/.nix-profile/bin/keys`（Plasma 6 没有可靠的声明式入口）。
+  新增一个应用的表：直接新建 `dotfiles/keybindings/<归一化 app_id>.md`，不用 switch。
+  表里第 3 列是英文说明（单独一列），新增键位时中英各写一遍。
+  只有**表头带「作用」列**的表会被收录（`| 按键 | 作用 | English |`）；
+  列语义不同的参考表（如 `| 功能 | niri | mango |`）不进速查，否则会把列宽撑坏。
+  一行所有列（含段名）合计控制在 **≤110 字符宽**（= 55 个汉字宽）：fzf 不折行，超了直接截断。
+  拍平后会去掉 `反引号` 和 `**粗体**` 标记（它们只对 markdown 渲染有意义）。
 
 ## 硬件与引导
 
@@ -499,7 +518,10 @@ btop 能看两张卡：系统侧 wrapper 给 `CAP_PERFMON`（核显），`cudaSu
   写到 `shellInit` / `bashrcExtra` 会经 niri-session 污染整个图形会话。
 - **代理**：默认不导出变量，用 `proxy_on` / `proxy_off` 手动开关。fish 与 bash
   各一份实现。
-- **终端**：kitty + Maple Mono NF CN；starship；eza（图标 + git 列）；fzf；zoxide。
+- **终端**：kitty + Maple Mono NF CN；starship（fish 与 bash 都接）；eza（图标 + git 列）；fzf；zoxide。
+  starship 是三行：`─` 分隔线 / 信息行 / 输入行。上一条命令耗时 ≥2s 时显示在
+  **分隔线正中**：`format` 里用两段 `$fill` 夹住 `$cmd_duration`，同一行的多个
+  `$fill` 会平分剩余宽度，所以不需要自己算居中。
 - **yazi**：用 `y` 进入、`q` 退出才会同步 shell 目录；git 状态列需要
   `plugin.prepend_fetchers` 登记 `*` 和 `*/`。
 - **btop**：本体来自系统侧 wrapper，配置只改 `shown_boxes`、`shown_gpus`、

@@ -20,7 +20,8 @@
 let
   # 路径统一来自 my.repoDir(home/common/default.nix),不写死 ~/nixos-config。
   editableConfig = "${config.my.repoDir}/dotfiles/mango/config.conf";
-  editableKeys = "${config.my.repoDir}/dotfiles/mango/KEYS.md";
+  # 速查表统一放在 dotfiles/keybindings/（文件名 = 表名）。
+  editableKeys = "${config.my.repoDir}/dotfiles/keybindings/mango.md";
 
   # 截图脚本(被 config.conf 里的 Super+P / Super+Ctrl+P 调用)。
   # 放在 home 侧是为了只靠 `nh home switch` 就能生效(不需要 sudo)。
@@ -98,8 +99,7 @@ in
 
   xdg.configFile."mango/config.conf".source = config.lib.file.mkOutOfStoreSymlink editableConfig;
 
-  # 快捷键速查(Super+Shift+/ 用 kitty 打开)。
-  # 放在 ~/.config/mango/ 里而不是引用仓库绝对路径,
-  # 这样 config.conf 里的 bind 只依赖 $HOME,不依赖仓库位置。
+  # 快捷键速查(Super+Shift+/ 走 `keys mango`,foot + fzf)。
+  # 在 ~/.config/mango/ 里再留一份副本,方便手动打开。
   xdg.configFile."mango/KEYS.md".source = config.lib.file.mkOutOfStoreSymlink editableKeys;
 }
