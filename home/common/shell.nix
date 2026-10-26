@@ -82,7 +82,8 @@
       # 耗时未到 min_time 时中间是空的，两段 fill 直接接上，仍是一条连续整线。
       # format = "$fill$cmd_duration$fill$line_break$os$directory$git_branch$git_status$nix_shell$line_break$character";
       format = lib.concatStrings [
-        "$fill$cmd_duration$fill$line_break$line_break"
+        "$fill$cmd_duration$fill$line_break"
+        "$line_break"
         "$os$directory$git_branch$git_status$nix_shell$character"
       ];
       os.disabled = false;

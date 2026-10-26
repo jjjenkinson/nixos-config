@@ -69,6 +69,19 @@
   列语义不同，不再混进取速查（否则会把 `column -t` 的列宽撑坏）
 - 拍平时去掉 `反引号` 与 `**粗体**` 标记；keysym 改用键帽写法
   （`Mod+[` / `Mod+,` / `Mod+-`），完整拼写放表下散文里
+- `zed.md` 按 Zed 1.24.2 官方 keymap 重写：补全 `g` / `Space` 系列与 LSP 跳转，
+  并在表头说明三层键位的真实优先级（Helix → vim 通用 → Zed 默认）；修正两处错标：
+  `Shift+F12` 是「跳实现」、「Alt+Shift+F12」才是查找引用，vim 下 `Ctrl+D` 是翻半页
+  （加选下一个相同词要用 `Ctrl+K Ctrl+D`）
+- 补全三张常用表：`kitty.md` 按 0.49.1 默认值补齐分屏 / 滚动 / hints / 配置，
+  并标出本机改的 `Ctrl+Shift+W` 与 `Alt+1..9`；`helix.md` 按 25.07.1 官方 keymap
+  补 goto / Space / 窗口 / 选择器，修正 `G`、`0`/`$`、`Space g`、宏 `Q`/`q` 等误记；
+  `niri.md` 补 `Mod+F10–F12` 启动器与 `Ctrl+Alt+Insert`
+- `yazi.md` 按 26.5.6 默认 keymap 补全（浏览 / 选择 / 文件 / 标签 / 排序 /
+  行模式 / 输入框），并标明本机只用 `prepend_keymap` 改了 `Enter` / `C` / `M`
+- 修 `keys` 的前台程序识别：Nix 包装器的 `/proc/<pid>/comm` 是 `.hx-wrapped`
+  这种名字，先去掉 `.` 前缀和 `-wrapped` 后缀再匹配；同时把「shell → 前台作业」
+  沿途的候选逐个查表，避免编辑器派生的 LSP 子进程把结果盖掉
 
 ### 用户环境
 

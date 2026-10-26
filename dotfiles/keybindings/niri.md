@@ -18,15 +18,18 @@
 
 ## 常用
 
-| 键            | 作用                           | English           |
-| ------------- | ------------------------------ | ----------------- |
-| `Mod+T`       | 终端 kitty                     | Terminal          |
-| `Mod+D`       | 启动器 fuzzel（可搜应用/文件） | Launcher (fuzzel) |
-| `Mod+Q`       | 关闭当前窗口                   | Close window      |
-| `Mod+O`       | 概览（鼠标甩左上角也能触发）   | Overview          |
-| `Mod+Shift+/` | niri 内置重要快捷键浮层        | Built-in sheet    |
-| `Mod+/`       | 本速查表（浮动窗口）           | This cheatsheet   |
-| `Alt+Shift+/` | 当前应用的快捷键表             | Focused app keys  |
+| 键            | 作用                               | English           |
+| ------------- | ---------------------------------- | ----------------- |
+| `Mod+T`       | 终端 kitty                         | Terminal          |
+| `Mod+D`       | 启动器 fuzzel（可搜应用/文件）     | Launcher (fuzzel) |
+| `Mod+Q`       | 关闭当前窗口                       | Close window      |
+| `Mod+O`       | 概览（鼠标甩左上角也能触发）       | Overview          |
+| `Mod+Shift+/` | niri 内置重要快捷键浮层            | Built-in sheet    |
+| `Mod+/`       | 本速查表（浮动窗口）               | This cheatsheet   |
+| `Alt+Shift+/` | 当前应用的快捷键表                 | Focused app keys  |
+| `Mod+F10`     | Zed 编辑器（本机）                 | Zed editor        |
+| `Mod+F11`     | 默认文件管理器，打开主目录（本机） | File manager      |
+| `Mod+F12`     | 默认浏览器 Firefox（本机）         | Browser           |
 
 ## 焦点
 
@@ -49,11 +52,13 @@
 | 键                    | 作用                      | English                  |
 | --------------------- | ------------------------- | ------------------------ |
 | `Mod+PgUp / PgDn`     | 上一个 / 下一个工作区     | Prev / next workspace    |
-| `Mod+I` / `Mod+U`     | 同上（I 上、U 下）        | Same                     |
+| `Mod+U` / `Mod+I`     | 同上（U 下、I 上）        | Same                     |
 | `Mod+1..9`            | 直接跳到工作区 1–9        | Workspace 1-9            |
 | `Mod+Ctrl+PgUp/PgDn`  | 把当前列移到上 / 下工作区 | Move column to workspace |
+| `Mod+Ctrl+U / I`      | 同上（U 下、I 上）        | Same                     |
 | `Mod+Ctrl+1..9`       | 把当前列移到工作区 1–9    | Move column to 1-9       |
 | `Mod+Shift+PgUp/PgDn` | 工作区整体上移 / 下移     | Move workspace up/down   |
+| `Mod+Shift+U / I`     | 同上（U 下、I 上）        | Same                     |
 | `Mod+Shift+Home/End`  | 工作区顶到最上 / 最下     | Workspace to top/bottom  |
 | `Mod+滚轮上/下`       | 切工作区（150ms 冷却）    | Switch workspace (wheel) |
 
@@ -132,6 +137,7 @@
 | 键                | 作用                                  | English       |
 | ----------------- | ------------------------------------- | ------------- |
 | `Ctrl+Alt+Delete` | 会话面板：关机/重启/注销/锁屏（本机） | Session panel |
+| `Ctrl+Alt+Insert` | 退出 niri（带确认对话框，本机）       | Quit niri     |
 | `Super+Alt+L`     | 锁屏 swaylock，解锁需输密码           | Lock screen   |
 | `Mod+Shift+P`     | 关闭显示器（动鼠标或按键恢复）        | Display off   |
 | `Mod+Shift+E`     | 退出 niri（会有确认对话框）           | Quit niri     |

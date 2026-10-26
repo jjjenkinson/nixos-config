@@ -188,13 +188,14 @@ in
               return 1
             }
 
-            # 终端窗口 → 前台程序名。
+            # 终端窗口 → 前台程序名（可能有几层，返回空格分隔的候选，从浅到深）。
             #
             # kitty 每个窗口是一个独立进程，直接子进程里既有 shell 也有
             # `kitten __atexit__` 之类的辅助进程，所以先找到 shell，
-            # 再从 shell 往下找最深的那层（即前台作业）。
+            # 再从 shell 往下找前台作业。沿途的名字都留着：编辑器还会再派生
+            # LSP（hx → nixd / rust-analyzer），只看最深那层会认成 LSP。
             foreground_child() {
-              local pid=$1 depth=0 shell="" next comm c name=""
+              local pid=$1 depth=0 shell="" c comm next out=""
 
               for c in $(children_of "$pid"); do
                 comm=$(cat "/proc/$c/comm" 2>/dev/null) || continue
@@ -211,8 +212,8 @@ in
                 for c in $(children_of "$pid"); do
                   comm=$(cat "/proc/$c/comm" 2>/dev/null) || continue
                   is_shell "$comm" && continue
+                  out="$out $comm"
                   next=$c
-                  name=$comm
                   break
                 done
                 [ -n "$next" ] || break
@@ -220,12 +221,18 @@ in
                 depth=$((depth + 1))
               done
 
-              printf '%s' "$name"
+              printf '%s' "''${out# }"
             }
 
-            # 进程名 → 表名（调用处会再检查文件是否存在，不存在就回退到终端自己的表）
+            # 进程名 → 表名（调用处会再检查文件是否存在，不存在就试下一个候选）
+            #
+            # Nix 包装过的程序，/proc/<pid>/comm 带的是包装器的名字：
+            #   helix → .hx-wrapped    kitty → .kitty-wrapped
+            # 去掉前缀点和 -wrapped 后缀再匹配，否则永远认不出来。
             map_proc() {
-              case $1 in
+              local p=''${1#.}
+              p=''${p%-wrapped}
+              case $p in
                 hx|helix) printf '%s' helix ;;
                 nvim|vim|vi) printf '%s' neovim ;;
                 yazi) printf '%s' yazi ;;
@@ -308,13 +315,14 @@ in
             name=$(normalize "$app")
 
             if is_terminal "$name" && [ -n "$pid" ]; then
-              child=$(foreground_child "$pid")
-              if [ -n "$child" ]; then
+              candidates=$(foreground_child "$pid")
+              for child in $candidates; do
                 mapped=$(map_proc "$child")
                 if [ -n "$mapped" ] && [ -f "$keys_dir/$mapped.md" ]; then
                   name=$mapped
+                  break
                 fi
-              fi
+              done
             fi
 
             # ── 5. 查表 ─────────────────────────────────────────────────────
