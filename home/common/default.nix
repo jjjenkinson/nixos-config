@@ -2,6 +2,7 @@
   pkgs,
   config,
   lib,
+  plasma,
   userName,
   ...
 }:
@@ -40,6 +41,7 @@
     ./git-ssh.nix
     # ./btop.nix
     ./mime.nix # 默认应用设置
+    ./sioyek.nix # PDF 阅读器配置（软链到 dotfiles）
     ./keys.nix # Alt+Shift+/ 的当前应用快捷键速查
     ./browser-proxy.nix # Chrome/Edge 启动时按代理端口自动决定是否走代理
   ];
@@ -60,34 +62,46 @@
       export HOME_MANAGER_BACKUP_COMMAND=${pkgs.trash-cli}/bin/trash
     '';
 
-    home.packages = with pkgs; [
-      # 注意:firefox / chrome / mpv / vlc / libreoffice / sioyek / flclash 在
-      # modules/packages/(系统侧)。它们很少变,放系统侧可以让
-      # home 闭包小一点;增删/升级需要 `sudo nh os switch`。
+    # 没有 Plasma 的机器没有 Dolphin / gwenview,补上 Thunar 和 swayimg,
+    # 让 mime.nix 里的 inode/directory 和图片关联有程序可用。
+    # 有 Plasma 时不装,省闭包。
+    home.packages =
+      (with pkgs; [
+        # 注意:firefox / chrome / mpv / vlc / libreoffice / sioyek / flclash 在
+        # modules/packages/(系统侧)。它们很少变,放系统侧可以让
+        # home 闭包小一点;增删/升级需要 `sudo nh os switch`。
 
-      # ── CLI 工具 ──────────────────────────────────
-      bat # cat 替代
-      ripgrep # grep 替代
-      fd # find 替代
-      dust # du 替代,显示目录结构
-      duf # df 替代
-      # btop 不在 home 安装:系统侧 security.wrappers.btop 提供带 CAP_PERFMON 的版本
-      # (核显/独显都能看),配置在 home/common/btop.nix。
-      htop
-      btop
-      fastfetch # 系统信息
-      inxi # 硬件/系统详情
+        # ── CLI 工具 ──────────────────────────────────
+        bat # cat 替代
+        ripgrep # grep 替代
+        fd # find 替代
+        dust # du 替代,显示目录结构
+        duf # df 替代
+        # btop 不在 home 安装:系统侧 security.wrappers.btop 提供带 CAP_PERFMON 的版本
+        # (核显/独显都能看),配置在 home/common/btop.nix。
+        htop # 系统资源监测
+        btop # 系统资源监测
+        fastfetch # 系统信息
+        inxi # 硬件/系统详情
 
-      ffmpeg
-      ouch # 现代压缩解压缩工具
+        ffmpeg
+        ouch # 现代压缩解压缩工具
 
-      # 注意:gnumake、nixd/nixfmt、rust-analyzer/rustfmt、pyright/ruff、
-      # typst/tinymist 已移到 modules/packages/default.nix(系统侧)。
-      # 它们很少变,这样 home 闭包更小(实测 884 → 831 个 store 路径);
-      # 对冷启动时间的改善很小,主要是精简 profile。
-      # 增删/升级它们需要 `sudo nh os switch`。
-      microsoft-edge
-    ];
+        # mdpreviewer 不在 nixpkgs 里,包定义见 pkgs/mdpreviewer.nix。
+        # 给 Helix 之类没有内建预览的编辑器当外部 Markdown / Typst 预览器。
+        (pkgs.callPackage ../../pkgs/mdpreviewer.nix { })
+
+        # 注意:gnumake、nixd/nixfmt、rust-analyzer/rustfmt、pyright/ruff、
+        # typst/tinymist 已移到 modules/packages/default.nix(系统侧)。
+        # 它们很少变,这样 home 闭包更小(实测 884 → 831 个 store 路径);
+        # 对冷启动时间的改善很小,主要是精简 profile。
+        # 增删/升级它们需要 `sudo nh os switch`。
+        microsoft-edge
+      ])
+      ++ lib.optionals (!plasma) [
+        pkgs.thunar
+        pkgs.swayimg # 图片查看器,mime.nix 在 !plasma 时把 image/* 指向它
+      ];
 
     # 默认编辑器(sudo -e 也会用),具体命令由 my.editor 决定。
     home.sessionVariables = {

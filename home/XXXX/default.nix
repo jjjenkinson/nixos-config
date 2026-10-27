@@ -10,7 +10,7 @@
 #   imports = [ ./git.nix ./shell.nix ./apps.nix ];
 #
 # 不要在这里重复 home/common 已经写过的配置 —— 只需要覆盖想让这个用户不同的项。
-{ pkgs, ... }:
+{ ... }:
 
 {
   # git 提交身份;GitHub 关联贡献需要邮箱与账号一致。
@@ -23,8 +23,6 @@
   # 可选值就是 PATH 里的命令,例如 "hx"、"nvim"、"vim"。
   my.editor = "nvim";
 
-  # 这台机器只装 Niri、不装 KDE,所以不能指向 Dolphin(它不存在)。
-  # 「用哪个文件管理器」和「把它装上」都放在用户这一层,两者不会分家。
-  my.fileManager = "thunar.desktop";
-  home.packages = [ pkgs.thunar ];
+  # 文件管理器不用在这里写：home/common 会根据这台机器有没有 Plasma
+  # 自动选 Dolphin（有）或在 home.packages 里装 Thunar（没有）。
 }

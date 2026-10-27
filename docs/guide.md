@@ -27,16 +27,16 @@ flowchart TD
     B["pkgsConfig<br/>allowUnfree = true"]
     C["overlays/unstable.nix<br/>names 名单"]
     D["pkgs<br/>import nixpkgs with system / overlays / config"]
-    E["hosts 表<br/>XPS9560 → user jiro"]
+    E["hosts 表<br/>XPS9560 → user jiro<br/>plasma = true"]
     F["nixosConfigurations.&lt;主机&gt;"]
     G["homeConfigurations.&lt;用户&gt;@&lt;主机&gt;"]
-    H["specialArgs<br/>inputs / hostName / userName"]
+    H["specialArgs<br/>inputs / hostName / userName / plasma"]
     I["hosts/&lt;主机&gt;/default.nix"]
     J["commonModules<br/>system / packages / desktop / users"]
     K["模块合并<br/>options 声明 + config 赋值"]
     L["networking.hostName<br/>my.user.name<br/>my.desktop.*"]
     M["/nix/store/…-nixos-system-&lt;主机&gt;"]
-    N["extraSpecialArgs<br/>hostName / userName"]
+    N["extraSpecialArgs<br/>hostName / userName / plasma"]
     O["home/common + home/&lt;用户&gt;"]
     P["home.username<br/>my.editor / my.repoDir<br/>xdg.configFile"]
     Q["/nix/store/…-home-manager-generation"]
@@ -88,7 +88,7 @@ flowchart TD
 | `modules/packages/apps.nix`               | 大件 GUI 应用                                    | 放系统侧是为省 home 切换时间                         |
 | `modules/desktop/default.nix`             | 汇总 + KDE 菜单文件                              | 修 niri 下 `kbuildsycoca` 建空库                     |
 | `modules/desktop/login-manager.nix`       | lemurs + 控制台字体 + 两个补丁                   | 补丁依赖上游行为，升级后复验                         |
-| `modules/desktop/plasma.nix`              | `my.desktop.plasma.enable`                       | 默认关；同时开 X                                     |
+| `modules/desktop/plasma.nix`              | `my.desktop.plasma.enable`                       | 默认取主机表 `plasma`；同时开 X                      |
 | `modules/desktop/niri.nix`                | niri 包、会话、Xwayland、亮度权限                | 只有开关，不含键位                                   |
 | `modules/desktop/mango.nix`               | mangowc 包、会话、XDG 自启动桥接                 | 键位在 dotfiles                                      |
 | `modules/desktop/fonts.nix`               | 字体与 fontconfig 回退链                         | 等宽必须带 NF                                        |
@@ -111,7 +111,8 @@ flowchart TD
 | `home/common/niri.nix`                   | `base.kdl` 生成 + `config.kdl` 软链 + KEYS.md                  | 软链 → `dotfiles/`                                     |
 | `home/common/mango.nix`                  | `config.conf` 软链 + 截图/布局脚本                             | 软链 → `dotfiles/`                                     |
 | `home/common/noctalia.nix`               | `00-nix.toml` 软链                                             | 不管 `settings.toml`                                   |
-| `home/common/mime.nix`                   | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在                                |
+| `home/common/mime.nix`                   | 默认应用、`my.fileManager`                                     | desktop ID 必须真实存在（无 Plasma 用 swayimg）        |
+| `home/common/sioyek.nix`                 | `prefs_user.config` / `keys_user.config` 软链                  | 文件级软链；重启 sioyek 才生效                         |
 | `home/common/keys.nix`                   | `keys` 命令：探测焦点窗口 → 打开速查表                         | `Alt+Shift+/`；KDE 需手动绑一次                        |
 | `home/common/browser-proxy.nix`          | Chrome / Edge 启动器：按代理端口决定是否加参数                 | 覆盖 `~/.local/share` 下的 .desktop                    |
 | `home/common/git-ssh.nix`                | git 身份、github.com SSH、sockets 目录                         | 密钥不进 store                                         |
@@ -157,27 +158,44 @@ flowchart TD
 | 选项                            | 默认值                                   | 声明位置                     |
 | ------------------------------- | ---------------------------------------- | ---------------------------- |
 | `my.desktop.niri.enable`        | `true`                                   | `modules/desktop/niri.nix`   |
-| `my.desktop.plasma.enable`      | `false`                                  | `modules/desktop/plasma.nix` |
+| `my.desktop.plasma.enable`      | 主机表的 `plasma` 字段                   | `modules/desktop/plasma.nix` |
 | `my.desktop.mango.enable`       | `false`                                  | `modules/desktop/mango.nix`  |
 | `my.user.name` / `extraGroups`  | 必填 / `wheel,networkmanager,video,seat` | `modules/users/default.nix`  |
 | `my.editor`                     | `hx`                                     | `home/common/default.nix`    |
 | `my.repoDir`                    | `$HOME/nixos-config`                     | `home/common/default.nix`    |
-| `my.fileManager`                | `org.kde.dolphin.desktop`                | `home/common/mime.nix`       |
+| `my.fileManager`                | Dolphin（有 Plasma）/ Thunar（无）       | `home/common/mime.nix`       |
 | `my.git.userName` / `userEmail` | 必填                                     | `home/common/git-ssh.nix`    |
 
 选项的流向是单向的：
 
 ```text
-hosts/<主机>/default.nix  ──赋值──▶  my.desktop.plasma.enable = true
-                                          │
-modules/desktop/plasma.nix ──声明──▶  options.my.desktop.plasma.enable
-                                          │
-                                    mkIf 开关
-                                          ▼
-                            services.desktopManager.plasma6.enable
-                                          ▼
-                              lemurs 的会话列表里出现 Plasma
+flake.nix 主机表  ──plasma = true──┬─▶ specialArgs.plasma
+                                   │        │
+                                   │        ▼
+                                   │  modules/desktop/plasma.nix
+                                   │  default = plasma（mkIf 开关）
+                                   │        ▼
+                                   │  services.desktopManager.plasma6.enable
+                                   │
+                                   └─▶ extraSpecialArgs.plasma
+                                            ▼
+                                    home/common/mime.nix
+                                    （文件管理器 / 图片查看器）
 ```
+
+Plasma 开关只写在 `flake.nix` 主机表的 `plasma` 字段：系统侧经 `specialArgs`、
+home 侧经 `extraSpecialArgs` 各拿一份，**两边各自求值，home 不再读
+`nixosConfigurations`**。所以 `nh home switch` 只算 home 配置，不会把整套
+NixOS 配置拖进来。
+
+home 侧依赖这个值的只有两件事：
+
+- `my.fileManager`：有 Plasma → 自带的 Dolphin，没有 → home 里装 Thunar 并设为
+  `inode/directory` 默认程序。
+- 图片查看器：有 Plasma → gwenview，没有 → home 里装 swayimg（`swayimg.desktop`）。
+
+注意 `my.desktop.plasma.enable` 现在不要再到 `hosts/<主机>/default.nix` 里赋值，
+两处都写会因普通值冲突而求值报错。
 
 覆盖就是在主机或用户文件里赋一次值。多个文件赋同一个选项时，普通值会冲突报错，
 用 `lib.mkDefault` / `lib.mkForce` 表达优先级。
@@ -302,16 +320,19 @@ flowchart LR
     T --> H["hosts/&lt;主机&gt;/"]
     T --> U["home/&lt;用户&gt;/"]
     H --> HW["hardware-configuration.nix<br/>（生成，不手改）"]
-    H --> HD["default.nix<br/>imports / 桌面开关"]
-    U --> USER["my.git / my.editor<br/>my.fileManager"]
+    H --> HD["default.nix<br/>imports / stateVersion"]
+    U --> USER["my.git / my.editor"]
 ```
 
 1. 改目录名：`mv hosts/HHHH hosts/<新主机名>`、`mv home/XXXX home/<新用户名>`
-2. 改 `flake.nix` 主机表：`<新主机名> = { user = "<新用户名>"; };`
+2. 改 `flake.nix` 主机表：`<新主机名> = { user = "<新用户名>"; plasma = false; };`
+   （`plasma` 是 home/os 共用的开关，缺省 `false`；装 Plasma 就写 `true`）
 3. 在目标机生成硬件文件：
    `sudo nixos-generate-config --root /mnt --dir ~/nixos-config/hosts/<新主机名>`
-4. 改 `hosts/<新主机名>/default.nix`：imports、`system.stateVersion`、桌面开关
-5. 改 `home/<新用户名>/default.nix`：`my.git.*`、`my.editor`、`my.fileManager`
+4. 改 `hosts/<新主机名>/default.nix`：imports、`system.stateVersion`；
+   不要再写 `my.desktop.plasma.enable`（已上移到主机表，两处都写会冲突）
+5. 改 `home/<新用户名>/default.nix`：`my.git.*`、`my.editor`；文件管理器不用写，
+   `home/common` 会按主机表的 Plasma 字段自动选 Dolphin / 装 Thunar
 6. `grep -rn "HHHH\|XXXX" --exclude-dir=.git .` 确认没残留
 7. `git add -A` → `nh os build` → `sudo nh os switch` → `nh home switch`
 
@@ -413,11 +434,11 @@ flowchart TD
     M --> MC["config.conf<br/>（dotfiles 软链）"]
 ```
 
-| 桌面     | 开关                       | 默认 |
-| -------- | -------------------------- | ---- |
-| Niri     | `my.desktop.niri.enable`   | 开   |
-| Plasma 6 | `my.desktop.plasma.enable` | 关   |
-| MangoWC  | `my.desktop.mango.enable`  | 关   |
+| 桌面     | 开关                       | 默认   |
+| -------- | -------------------------- | ------ |
+| Niri     | `my.desktop.niri.enable`   | 开     |
+| Plasma 6 | `my.desktop.plasma.enable` | 主机表 |
+| MangoWC  | `my.desktop.mango.enable`  | 关     |
 
 - **登录器**：lemurs，纯文本 TUI，不依赖合成器。字号就是控制台字体（`ter-124n`），
   会话名显示长度 16，记住上次用户和会话。
@@ -538,9 +559,14 @@ btop 能看两张卡：系统侧 wrapper 给 `CAP_PERFMON`（核显），`cudaSu
   Zed Agent 的上下文用掉 167000 token 时自动压缩（`auto_compact.threshold`
   写绝对值；`glm-4.7-flash` 可用输入 = 200k − 30k 输出 = 170k）；
   压缩 / 线程摘要 / 提交信息走免费的 `glm-4.7-flash`，provider 写 `ZhipuAI`。
-- **默认应用**：视频/音频 → mpv，网页 → firefox，目录 → `my.fileManager`
-  （不装 KDE 的机器改 `thunar.desktop` 并装 `pkgs.thunar`）。生成的
-  `mimeapps.list` 是只读软链。
+- **默认应用**：视频/音频 → mpv，图片 → gwenview（有 Plasma）/ swayimg（无 Plasma），
+  网页 → firefox，目录 → `my.fileManager`（有 Plasma 就用自带的 Dolphin；没有 Plasma 时
+  home 侧会自动装 Thunar 并关联）。生成的 `mimeapps.list` 是只读软链。
+  注：`swayimg.desktop` 自带 `NoDisplay=true`，关联能正常工作但应用菜单里看不到。
+- **Sioyek 配置**：`dotfiles/sioyek/{prefs,keys}_user.config` 以文件级软链挂到
+  `~/.config/sioyek/`（包仍在系统侧，与二进制装在哪无关）。改仓库文件不用
+  `nh home switch`，但 sioyek 没有配置热重载，要重启它才生效。目录本身保持真实，
+  `shared.db`（共享书签/高亮库）等运行时数据不进仓库。
 - **XDG 目录**：HM 固定为英文 `~/Documents` 等，并写 `user-dirs.conf` 关掉
   `xdg-user-dirs-update`。
 - **语言**：`LANG=zh_CN` 管 GUI，`LC_MESSAGES=en_US` 只在终端；glibc 里要先用

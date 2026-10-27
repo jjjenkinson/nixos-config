@@ -61,5 +61,7 @@ in
     # ── 文档 ───────────────────────────────────────────────
     libreoffice
     sioyek # pdf 阅读器
+
+    font-manager # gnome字体管理器
   ];
 }

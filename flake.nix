@@ -78,9 +78,15 @@
       hosts = {
         XPS9560 = {
           user = "jiro";
+          # 是否安装 Plasma。home 侧要用同一个值决定文件管理器/图片查看器，
+          # 所以开关放在这张表里，系统与 home 各自读取，互不求值。
+          # 是否决定安装Niri、Mango在hosts/<主机名>/default.nix文件里设定。
+          # 它们的缺省值在modules/<桌面名>.nix中设定
+          plasma = true;
         };
         HHHH = {
           user = "XXXX"; # ← 占位,换成真实用户名
+          plasma = false; # 不写也行,缺省按 false 处理
         };
       };
 
@@ -109,6 +115,7 @@
             inherit inputs;
             hostName = name;
             userName = h.user;
+            plasma = h.plasma or false;
           };
           modules = [
             ./hosts/${name}
@@ -127,7 +134,9 @@
       # mapAttrs' 把主机表展开成:
       #   homeConfigurations."jiro@XPS9560" / homeConfigurations."XXXX@HHHH"
       # 每个用户 = home/common(共用) + home/<user>(个人目录)。
-      # 用户名 / 主机名通过 extraSpecialArgs 注入,模块里直接当参数用。
+      # 用户名 / 主机名 / plasma 通过 extraSpecialArgs 注入,模块里直接当参数用。
+      # plasma 与系统侧同源(都读主机表的 plasma 字段),但两边各自求值——
+      # home 配置不会连带求值 NixOS 配置。
       homeConfigurations = nixpkgs.lib.mapAttrs' (
         name: h:
         nixpkgs.lib.nameValuePair "${h.user}@${name}" (
@@ -137,6 +146,7 @@
               inherit inputs;
               hostName = name;
               userName = h.user;
+              plasma = h.plasma or false;
             };
             modules = [
               ./home/common

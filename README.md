@@ -17,10 +17,10 @@
   改用户配置不用 sudo，也不用重启系统
 - **三套桌面共存**：Plasma 6 / Niri / MangoWC，登录时选；每台机器用开关决定装哪些
 - **两类配置**：主体用 Nix 声明式管理；`dotfiles/` 里是可以手改、保存即热重载的
-  纯文本配置（niri、mango、noctalia），日常调键位不用 rebuild
+  纯文本配置（niri、mango、noctalia等），日常调键位不用 rebuild
 - **unstable 集中管理**：哪些包走 unstable 只写在一个 overlay 文件里，
   注释掉一行就能整体退回 pure stable
-- **随处可操作**：`Mod+/`（niri）、`Super+Shift+/`（mango）呼出快捷键速查表
+- **随处可呼出快捷键速查表**：自动监测当前激活窗口，`Alt+Shift+/` 弹出一个浮动窗口，可以使用fzf速查当前应用的快捷键。 `Super+Shift+/` 呼出窗口管理器的快捷键速查表
 - **双系统**：Limine 引导 NixOS 和 Windows，Windows 的 ESP 只读不改
 
 ## 快速开始
@@ -29,7 +29,6 @@
 nh home switch          # 改了 home/**（不需要 sudo）
 sudo nh os switch       # 改了 hosts/**、modules/**、flake.nix
 nh os build             # 只构建不切换，检查是否编译通过
-nix fmt                 # 用 nixfmt 格式化整个仓库
 ```
 
 开机菜单里可以直接选旧代回滚；系统侧回滚命令见 [日常用法](docs/guide.md#更新与回滚)。
@@ -64,7 +63,7 @@ nix fmt                 # 用 nixfmt 格式化整个仓库
 ## 几条硬性约定
 
 1. **`hardware-configuration.nix` 不手改**：真实机器的是安装器生成的；
-   占位主机里的是存根，首次安装前必须用 `nixos-generate-config --dir` 覆盖
+   占位主机里的是示例，首次安装前必须用 `nixos-generate-config --dir` 覆盖
 2. **新增 `.nix` 文件后必须 `git add`**：flake 只读 Git 已跟踪的文件，
    否则报 `No such file or directory`
 3. **主机名/用户名只写在两处**：`flake.nix` 的主机表、对应目录名

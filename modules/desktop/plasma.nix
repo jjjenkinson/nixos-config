@@ -1,15 +1,23 @@
-# Plasma 6。是否启用由 my.desktop.plasma.enable 控制(默认关)。
+# Plasma 6。是否启用由 my.desktop.plasma.enable 控制。
 #
-# 默认关的理由:这套配置的主力是 Niri / Mango 这类平铺合成器,
-# Plasma 相当于「额外多装一整套 DE」,只应该在需要它的机器上显式打开
-# (见 hosts/XPS9560/default.nix)。
-{ config, lib, ... }:
+# 默认值来自 flake.nix 主机表的 plasma 字段(经 specialArgs 注入)。
+# 为什么不在这里写死 false、再让 hosts/<机名>/default.nix 覆盖:
+# home 侧要用同一个值决定文件管理器/图片查看器及其依赖包,
+# 只能让两边读同一份数据;而让 home 去读 nixosConfigurations 会
+# 把 NixOS 求值拖进 `nh home switch`。所以开关上移到主机表,
+# 系统和 home 各读一次,互不求值。
+{
+  config,
+  lib,
+  plasma,
+  ...
+}:
 
 {
   options.my.desktop.plasma.enable = lib.mkOption {
     type = lib.types.bool;
-    default = false;
-    description = "是否启用 KDE Plasma 6";
+    default = plasma;
+    description = "是否启用 KDE Plasma 6(默认取 flake 主机表的 plasma 字段)";
   };
 
   config = lib.mkIf config.my.desktop.plasma.enable {

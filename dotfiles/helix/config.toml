@@ -10,9 +10,10 @@ theme = "catppuccin_mocha"
 
 [editor]
 bufferline = "multiple"
-default-yank-register = "+" # 与系统剪贴板共用寄存器
+default-yank-register = "+"                                                             # 与系统剪贴板共用寄存器
 line-number = "relative"
 scrolloff = 18
+auto-save = { focus-lost = true, after-delay.enable = true, after-delay.timeout = 300 }
 
 [editor.cursor-shape]
 insert = "bar"
@@ -25,3 +26,29 @@ display-messages = true
 [editor.soft-wrap]
 enable = true
 
+[keys.normal]
+# 保存后把预览同步到光标所在行；没有运行中的预览时是空操作。
+# "C-s" = [":w", ':sh mdpreviewer --sync --line %{cursor_line} "%{buffer_name}"']
+# 保存后判断文件后缀是[*.md, *.markdown, *.typ]中的一种才运行接下来的命令
+# 但是mdpreviewer --sync选项只刷新不启动预览
+"C-s" = [
+    ":w",
+    ':sh b="%{buffer_name}"; case "$b" in *.md|*.markdown|*.typ) mdpreviewer --sync --line %{cursor_line} "$b";; esac',
+]
+
+# 插入模式里 C-s 默认没有绑定：先回普通模式再保存同步。
+[keys.insert]
+"C-s" = [
+    "normal_mode",
+    ":w",
+    # ':sh mdpreviewer --sync --line %{cursor_line} "%{buffer_name}"',
+    ':sh b="%{buffer_name}"; case "$b" in *.md|*.markdown|*.typ) mdpreviewer --sync --line %{cursor_line} "$b";; esac',
+]
+
+# 反斜杠前缀：\m 打开/切换预览，\r 重启服务，\q 关闭服务。
+# 25.07 的 keymap 不支持 label 字段（会报 Invalid key code 'label'），
+# 所以这里只有键，没有弹窗里的说明文字。
+[keys.normal."\\"]
+m = [":w", ':sh mdpreviewer --line %{cursor_line} "%{buffer_name}"']
+r = [":w", ':sh mdpreviewer --restart --line %{cursor_line} "%{buffer_name}"']
+q = ":sh mdpreviewer --quit"

@@ -25,7 +25,7 @@
 
 ## 收尾
 
-- 记得更新 `docs/CHANGELOG.md` 文件
+- 记得更新 `docs/CHANGELOG.md` 文件，此文件要符合 [kepp a changelog规范](https://keepachangelog.com/zh-CN/1.1.0/)
 - 行为变了同步 `docs/guide.md`；键位变了同步 `keybindings` 文件夹下相关md文件
 - 项目内有修改或新增的非隐藏文件或目录，包括外部手动修改的文件和目录，在输出中提醒我，然后自动 `git add` , `git status` 里没有意外文件
 

@@ -253,3 +253,15 @@
 | `:config-reload` | 重新加载 config.toml   | Reload config     |
 | `:theme`         | 切换主题               | Theme picker      |
 | `Ctrl+z`         | 挂起 Helix，回到 shell | Suspend           |
+
+## Markdown 预览
+
+> 由 `mdpreviewer` 提供（`dotfiles/helix/config.toml`）。只对 `.md` / `.markdown` /
+> `.typ` 生效，其他文件上是空操作；没有运行中的服务时 `Ctrl+s` 也不会启动它。
+
+| 键       | 作用                     | English                   |
+| -------- | ------------------------ | ------------------------- |
+| `Ctrl+s` | 保存并把预览同步到光标行 | Save, sync preview line   |
+| `\m`     | 保存并打开 / 切换预览    | Save, open/switch preview |
+| `\r`     | 保存并重启预览服务       | Restart preview server    |
+| `\q`     | 停止预览服务             | Quit preview server       |

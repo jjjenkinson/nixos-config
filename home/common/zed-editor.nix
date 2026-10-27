@@ -14,6 +14,7 @@
 #
 # 合并规则（mutableUserSettings = true，每次 switch 执行）：
 #   读 settings.json → 与 Nix 静态值 jq 递归合并（对象递归合并；标量、数组以 Nix 为准）
+#   即Nix有的键值以Nix为准，Nix没有的键值就用settings.json中的
 #   → 用严格 JSON 覆盖写回。由此得到两个必须知道的结论：
 #   - settings.json 里的注释每次 switch 都会被抹掉 → 注释写在本文件里
 #   - 从 Nix 删掉某个键，settings.json 里原来那份仍会保留（需要手动删）
@@ -106,8 +107,11 @@ in
           enable_thinking = true;
         };
         auto_compact = {
-          enabled = true; # 键名是 enabled；写成 enable 会被静默忽略
-          threshold = 167000;
+          enabled = true;
+
+          # deepseek-v4.1-flash有1M上下文，一般的小模型上下文有200K，
+          # 想要节约tokens，threshold设小点，想体验舒适不想频繁切换就设置30%~50%
+          threshold = 250000;
         };
         # glm-4.7-flash虽然免费，但是总是访问量过大，以下三个要换其他便宜的模型
         # compaction_model = {

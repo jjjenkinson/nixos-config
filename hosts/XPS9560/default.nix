@@ -27,7 +27,9 @@
   # 本机额外想要的桌面会话:登录界面里会多一个 Mango。
   my.desktop.mango.enable = true;
 
-  # Plasma 现在默认关(整套配置的主力是 Niri / Mango),这台机器要用就显式打开。
-  my.desktop.plasma.enable = true;
+  # 本机要用 Plasma。开关已上移到 flake.nix 主机表的 plasma 字段
+  # (home 侧也要用同一个值),这里不再重复赋值,否则两处维护。
+  # 要关掉:把 flake.nix 里 XPS9560 的 plasma 改成 false。
+  # my.desktop.plasma.enable = true;
   # Niri 默认就是开的(my.desktop.niri.enable = true),不用写。
 }

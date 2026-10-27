@@ -1,4 +1,9 @@
 {
+  "icon_theme": {
+    "mode": "dark",
+    "light": "Zed (Default)",
+    "dark": "Zed (Default)"
+  },
   "agent": {
     "sandbox_permissions": {
       "allow_unsandboxed": true
@@ -34,7 +39,7 @@
     },
     "auto_compact": {
       "enabled": true,
-      "threshold": 167000
+      "threshold": 250000
     },
     "default_model": {
       "effort": "high",
